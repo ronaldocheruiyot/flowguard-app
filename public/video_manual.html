@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowGuard HD Video Manual: Scrolling, Navigation, Editing & Voice Narration</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes tapWave {
+      0% { transform: scale(0.6); opacity: 1; }
+      100% { transform: scale(2.8); opacity: 0; }
+    }
+    .tap-effect {
+      animation: tapWave 0.6s cubic-bezier(0, 0, 0.2, 1) forwards;
+    }
+    @keyframes chassisGlow {
+      0%, 100% { box-shadow: 0 0 30px rgba(16, 185, 129, 0.2), 0 20px 50px rgba(0,0,0,0.8); }
+      50% { box-shadow: 0 0 50px rgba(6, 182, 212, 0.35), 0 20px 60px rgba(0,0,0,0.9); }
+    }
+    .chassis {
+      animation: chassisGlow 5s ease-in-out infinite;
+    }
+    #finger-cursor {
+      pointer-events: none;
+      position: absolute;
+      z-index: 100;
+      transition: left 0.45s cubic-bezier(0.25, 1, 0.5, 1), top 0.45s cubic-bezier(0.25, 1, 0.5, 1), transform 0.2s ease;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 3px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(16, 185, 129, 0.4);
+      border-radius: 4px;
+    }
+    @keyframes soundWave {
+      0%, 100% { height: 4px; }
+      50% { height: 16px; }
+    }
+    .wave-bar {
+      animation: soundWave 0.8s ease-in-out infinite;
+    }
+    .wave-bar:nth-child(2) { animation-delay: 0.15s; }
+    .wave-bar:nth-child(3) { animation-delay: 0.3s; }
+    .wave-bar:nth-child(4) { animation-delay: 0.45s; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-center p-2 sm:p-5 antialiased selection:bg-emerald-500">
+
+  <!-- Header / Badge -->
+  <div class="max-w-6xl w-full text-center mb-3 sm:mb-5">
+    <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2">
+      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+      Interactive Video Manual • Audio Voiceover & Screen Scrolling
+    </div>
+    <h1 class="text-2xl sm:text-4xl font-black text-white tracking-tight">
+      FlowGuard Step-by-Step Video Walkthrough
+    </h1>
+    <p class="text-xs sm:text-sm text-slate-400 max-w-2xl mx-auto mt-1">
+      Watch real screen scrolling, tab selection, profile customization, debtor management, auto-split 50/30/20, and 1-tap undo with clear voice narration.
+    </p>
+  </div>
+
+  <!-- Main Container -->
+  <div class="max-w-6xl w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-3 sm:p-6 shadow-2xl flex flex-col lg:flex-row gap-6 items-center">
+    
+    <!-- Smartphone Frame (Ultra-Realistic Phone Simulator) -->
+    <div class="chassis w-[340px] h-[680px] bg-slate-950 border-[9px] border-slate-800 rounded-[48px] shadow-2xl relative flex flex-col overflow-hidden shrink-0">
+      
+      <!-- Top Dynamic Island & Status Bar -->
+      <div class="bg-slate-900/95 px-5 pt-3 pb-2 flex items-center justify-between text-[11px] text-slate-400 z-40 select-none border-b border-slate-800/60 backdrop-blur">
+        <span class="font-bold text-white tracking-tight" id="phone-clock">09:41</span>
+        <div class="flex items-center gap-1.5 px-3 py-0.5 bg-black rounded-full text-[9px] text-emerald-400 font-bold border border-slate-800">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>FlowGuard PRO</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="text-[10px] font-semibold text-slate-300">5G</span>
+          <div class="w-4 h-2.5 bg-emerald-500 rounded-xs border border-emerald-400/40"></div>
+        </div>
+      </div>
+
+      <!-- Live Phone Screen (Scrollable Container) -->
+      <div id="phone-screen-container" class="flex-1 bg-slate-950 overflow-y-auto overflow-x-hidden relative flex flex-col text-white select-none custom-scroll">
+        <div id="phone-content" class="min-h-full flex flex-col p-3 pb-16">
+          <!-- Populated dynamically by scene engine -->
+        </div>
+      </div>
+
+      <!-- Bottom Fixed Navigation Bar -->
+      <div id="phone-bottom-nav" class="absolute bottom-0 left-0 right-0 h-14 bg-slate-900/95 backdrop-blur border-t border-slate-800/80 px-3 flex items-center justify-between z-30 text-[10px]">
+        <button id="nav-home" class="flex flex-col items-center text-emerald-400 font-bold transition">
+          <span class="text-sm">🏠</span>
+          <span>Home</span>
+        </button>
+        <button id="nav-split" class="flex flex-col items-center text-slate-400 hover:text-white transition">
+          <span class="text-sm">✨</span>
+          <span>Auto-Split</span>
+        </button>
+        <button id="nav-plus" class="relative -top-2 w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center font-black text-lg shadow-lg shadow-emerald-500/30 ring-4 ring-slate-950 transition active:scale-95">
+          +
+        </button>
+        <button id="nav-leak" class="flex flex-col items-center text-slate-400 hover:text-white transition">
+          <span class="text-sm">⚡</span>
+          <span>LeakRadar</span>
+        </button>
+        <button id="nav-records" class="flex flex-col items-center text-slate-400 hover:text-white transition">
+          <span class="text-sm">📋</span>
+          <span>Records</span>
+        </button>
+      </div>
+
+      <!-- Simulated Touch Hand / Finger Icon -->
+      <div id="finger-cursor" class="opacity-0 -translate-x-3 -translate-y-3">
+        <div class="relative flex items-center justify-center">
+          <div class="w-8 h-8 rounded-full bg-emerald-400/90 shadow-2xl border-2 border-white flex items-center justify-center text-black font-black text-xs">
+            👆
+          </div>
+          <div id="finger-ripple" class="absolute w-14 h-14 rounded-full bg-emerald-400/50 opacity-0 pointer-events-none"></div>
+        </div>
+      </div>
+
+      <!-- Bottom Home Indicator Bar -->
+      <div class="absolute bottom-0 left-0 right-0 h-3 flex items-center justify-center pointer-events-none z-40">
+        <div class="w-24 h-1 bg-slate-600/70 rounded-full"></div>
+      </div>
+    </div>
+
+    <!-- Video Storyboard, Audio Narrator & Control Console -->
+    <div class="flex-1 flex flex-col justify-between w-full h-full min-h-[580px] space-y-4">
+      
+      <!-- Top Title & Badge -->
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span id="scene-counter" class="text-xs font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+              Chapter 1 of 8
+            </span>
+            <div id="voice-indicator" class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 text-xs text-emerald-400 border border-slate-700">
+              <div class="flex items-center gap-0.5 h-3">
+                <span class="w-1 bg-emerald-400 rounded-full wave-bar"></span>
+                <span class="w-1 bg-emerald-400 rounded-full wave-bar"></span>
+                <span class="w-1 bg-emerald-400 rounded-full wave-bar"></span>
+                <span class="w-1 bg-emerald-400 rounded-full wave-bar"></span>
+              </div>
+              <span class="text-[10px] font-bold" id="voice-status">Voice Active</span>
+            </div>
+          </div>
+          <span id="timer" class="text-xs font-mono text-slate-300 bg-slate-800 px-3 py-1 rounded-lg border border-slate-700 font-bold">
+            0:00 / 2:30
+          </span>
+        </div>
+
+        <h2 id="scene-title" class="text-xl sm:text-2xl font-black text-white mb-2 tracking-tight">
+          1. Home Dashboard: Scrolling Business Inflows & Expenses
+        </h2>
+
+        <!-- Voice Narration Subtitles Banner -->
+        <div class="p-4 bg-gradient-to-r from-slate-900 to-slate-850 border border-emerald-500/30 rounded-2xl mb-3 shadow-lg relative overflow-hidden">
+          <div class="flex items-center justify-between text-xs text-emerald-400 font-bold mb-1.5">
+            <span class="flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"/></svg>
+              <span>Audio Voiceover Narration:</span>
+            </span>
+            <button id="btn-replay-voice" class="text-[10px] bg-slate-800 hover:bg-slate-700 px-2 py-0.5 rounded text-slate-300 border border-slate-700 transition">
+              🔊 Replay Audio
+            </button>
+          </div>
+          <p id="scene-narration" class="text-xs sm:text-sm text-slate-200 leading-relaxed font-medium italic">
+            "Welcome to FlowGuard. Watch the finger scroll down the live dashboard showing Benard Cheruiyot's 4 business income streams totaling 220,000 shillings, and his monthly expense centers."
+          </p>
+        </div>
+
+        <!-- Live Step Actions list -->
+        <div class="space-y-1.5">
+          <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+            <span>What's Happening on Screen:</span>
+            <span class="text-[10px] text-emerald-400 font-semibold" id="scroll-status">📜 Screen Scrolling Active</span>
+          </div>
+          <div id="scene-steps" class="space-y-1.5 text-xs text-slate-300">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Playback Controls & Settings -->
+      <div class="border-t border-slate-800 pt-3 space-y-3">
+        
+        <!-- Interactive Progress Bar -->
+        <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden cursor-pointer" id="progress-container">
+          <div id="progress-bar" class="bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 h-full w-0 transition-all duration-300"></div>
+        </div>
+
+        <!-- Master Buttons & Audio Options -->
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div class="flex items-center gap-2">
+            <button id="btn-prev" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition" title="Previous Scene">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <button id="btn-play" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs shadow-lg shadow-emerald-500/20 transition active:scale-95">
+              <span id="play-icon">▶</span>
+              <span id="play-label">Play Video Manual</span>
+            </button>
+            <button id="btn-next" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition" title="Next Scene">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+
+          <!-- Audio & Speed Controls -->
+          <div class="flex items-center gap-2">
+            <button id="btn-mute" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition">
+              <span id="mute-icon">🔊</span>
+              <span id="mute-label">Audio On</span>
+            </button>
+            <select id="speed-select" class="bg-slate-800 text-slate-300 text-xs font-bold px-2.5 py-2 rounded-xl border border-slate-700 outline-none">
+              <option value="1">1.0x Speed</option>
+              <option value="1.2">1.2x Speed</option>
+              <option value="1.5">1.5x Speed</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Scene Fast Chips -->
+        <div class="flex items-center gap-1.5 flex-wrap pt-1">
+          <button class="nav-chip text-[10px] px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 font-semibold" data-idx="0">1. Home Scroll</button>
+          <button class="nav-chip text-[10px] px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 font-semibold" data-idx="1">2. Profile & PIN 1234</button>
+          <button class="nav-chip text-[10px] px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 font-semibold" data-idx="2">3. Debtors & Collect</button>
+          <button class="nav-chip text-[10px] px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 font-semibold" data-idx="3">4. Center "+" Button</button>
+          <button class="nav-chip text-[10px] px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 font-semibold" data-idx="4">5. Auto-Split 50/30/20</button>
+          <button class="nav-chip text-[10px] px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 font-semibold" data-idx="5">6. LeakRadar Waste</button>
+          <button class="nav-chip text-[10px] px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 font-semibold" data-idx="6">7. Ledger & Statements</button>
+          <button class="nav-chip text-[10px] px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 font-semibold" data-idx="7">8. Delete & 1-Tap Undo</button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Master Video Engine Script -->
+  <script>
+    const masterScenes = [
+      // 0. HOME DASHBOARD & SMOOTH SCROLLING
+      {
+        title: "1. Home Dashboard: Scrolling Inflows & Expenses",
+        narration: "Welcome to FlowGuard. Watch the screen scroll smoothly down through Benard Cheruiyot's dashboard. You can see his net savings of sixty-four thousand seven hundred shillings, his four business income streams totaling two hundred and twenty thousand, and all monthly cost centers.",
+        steps: [
+          "📱 Views Net Monthly Savings (+KSh 64,700.00 / mo)",
+          "📜 Screen scrolls down smoothly across 4 Inflow Streams (Security 100k, Real Estate 50k, Rentals 50k, Tea 20k)",
+          "📊 Continues scrolling to view Key Expenses (Office Rent 25k, Electricity 8k, SACCOs, Golf & Fuel)"
+        ],
+        bottomTab: "nav-home",
+        scrollTimeline: [
+          { top: 0, delay: 0 },
+          { top: 120, delay: 1200 },
+          { top: 260, delay: 2400 },
+          { top: 0, delay: 4200 }
+        ],
+        cursorSeq: [
+          { x: 170, y: 150, delay: 400 },
+          { x: 170, y: 250, delay: 1400 },
+          { x: 170, y: 380, delay: 2600 }
+        ],
+        render: () => `
+          <div class="space-y-3">
+            <!-- User Header & Top Bar -->
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-500 to-cyan-400 p-0.5 shadow-sm">
+                  <div class="w-full h-full bg-slate-900 rounded-full flex items-center justify-center font-black text-white text-[10px]">BC</div>
+                </div>
+                <div>
+                  <div class="text-[11px] font-black text-white flex items-center gap-1">
+                    Benard Cheruiyot <span class="text-[9px] bg-emerald-500/20 text-emerald-400 px-1 py-0.2 rounded font-bold">PRO ⚙️</span>
+                  </div>
+                  <div class="text-[8px] text-slate-400">Security • Real Estate • Rentals • Tea</div>
+                </div>
+              </div>
+              <button class="text-xs p-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">🔔</button>
+            </div>
+
+            <!-- Top Filter Tabs -->
+            <div class="grid grid-cols-4 gap-1 text-[9px] font-bold text-center">
+              <div class="p-1 bg-emerald-500 text-white rounded-lg shadow-sm">Overview</div>
+              <div class="p-1 bg-slate-900 text-slate-300 rounded-lg border border-slate-800">Inflows</div>
+              <div class="p-1 bg-slate-900 text-slate-300 rounded-lg border border-slate-800">Expenses</div>
+              <div class="p-1 bg-slate-900 text-slate-300 rounded-lg border border-slate-800">Debtors</div>
+            </div>
+
+            <!-- Net Savings Hero Card -->
+            <div class="p-3 bg-gradient-to-br from-slate-900 to-slate-855 border border-emerald-500/40 rounded-2xl shadow-xl text-center space-y-1">
+              <span class="text-[9px] font-bold uppercase tracking-wider text-emerald-400">Net Monthly Savings</span>
+              <div class="text-xl font-black text-white tracking-tight">+KSh 64,700.00</div>
+              <div class="flex justify-between items-center text-[9px] text-slate-300 pt-1.5 border-t border-slate-800/80">
+                <span>Inflows: <strong class="text-emerald-400">220,000</strong></span>
+                <span>Outflows: <strong class="text-rose-400">155,300</strong></span>
+              </div>
+            </div>
+
+            <!-- 4 Income Streams Section -->
+            <div class="space-y-1.5">
+              <div class="text-[10px] font-bold text-white flex items-center justify-between">
+                <span>Business Inflows (4 Streams)</span>
+                <span class="text-[9px] text-emerald-400 font-bold">KSh 220,000/mo</span>
+              </div>
+              
+              <div class="grid grid-cols-2 gap-1.5 text-[9px]">
+                <div class="p-2 bg-slate-900 border border-slate-800 rounded-xl space-y-0.5">
+                  <div class="text-slate-400">🛡️ Security Co</div>
+                  <div class="font-bold text-cyan-400 text-[11px]">100,000</div>
+                </div>
+                <div class="p-2 bg-slate-900 border border-slate-800 rounded-xl space-y-0.5">
+                  <div class="text-slate-400">🏢 Real Estate</div>
+                  <div class="font-bold text-emerald-400 text-[11px]">50,000</div>
+                </div>
+                <div class="p-2 bg-slate-900 border border-slate-800 rounded-xl space-y-0.5">
+                  <div class="text-slate-400">🏠 Lonjo Rentals</div>
+                  <div class="font-bold text-indigo-400 text-[11px]">50,000</div>
+                </div>
+                <div class="p-2 bg-slate-900 border border-slate-800 rounded-xl space-y-0.5">
+                  <div class="text-slate-400">🌱 Tea Farm</div>
+                  <div class="font-bold text-lime-400 text-[11px]">20,000</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Key Expenses Grid -->
+            <div class="space-y-1.5 pt-1">
+              <div class="text-[10px] font-bold text-white flex items-center justify-between">
+                <span>Key Monthly Expenses</span>
+                <span class="text-[9px] text-rose-400 font-bold">KSh 155,300/mo</span>
+              </div>
+
+              <div class="space-y-1 text-[9px]">
+                <div class="p-2 bg-slate-900 border border-slate-800 rounded-xl flex justify-between items-center">
+                  <span>🏢 Office Rent (HQ)</span>
+                  <span class="font-bold text-white">25,000</span>
+                </div>
+                <div class="p-2 bg-slate-900 border border-slate-800 rounded-xl flex justify-between items-center">
+                  <span>🏦 Imarisha SACCO Loan</span>
+                  <span class="font-bold text-white">24,000</span>
+                </div>
+                <div class="p-2 bg-slate-900 border border-slate-800 rounded-xl flex justify-between items-center">
+                  <span>⛽ Travelling & Fuel</span>
+                  <span class="font-bold text-white">25,000</span>
+                </div>
+                <div class="p-2 bg-slate-900 border border-slate-800 rounded-xl flex justify-between items-center">
+                  <span>⛳ Golf & Entertainment</span>
+                  <span class="font-bold text-white">12,000</span>
+                </div>
+                <div class="p-2 bg-slate-900 border border-slate-800 rounded-xl flex justify-between items-center">
+                  <span>🛍️ Shopping & Apparel</span>
+                  <span class="font-bold text-white">20,000</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        `
+      },
+
+      // 1. PROFILE CUSTOMIZATION, PIN & ADMIN 1234
+      {
+        title: "2. Profile Settings: Avatar, PIN & Admin Master 1234",
+        narration: "Tapping the profile button opens Benard's settings drawer. Here, Benard can update his profile photo, change his security PIN, and adjust budget sliders. Note that the Admin Master Key 1234 is always active for you as administrator.",
+        steps: [
+          "👆 Taps 'Benard Cheruiyot PRO ⚙️' in the header ➔ Settings Drawer opens",
+          "📷 Taps 'Upload Photo' to change avatar & modifies name",
+          "🔑 Sets personal PIN • Admin Master Key 1234 always remains functional",
+          "🎚️ Adjusts quick budget sliders for Fuel and Shopping"
+        ],
+        bottomTab: "nav-home",
+        scrollTimeline: [
+          { top: 0, delay: 0 },
+          { top: 140, delay: 1800 },
+          { top: 0, delay: 3800 }
+        ],
+        cursorSeq: [
+          { x: 120, y: 35, delay: 400 },
+          { x: 160, y: 150, delay: 1400 },
+          { x: 220, y: 280, delay: 2400 },
+          { x: 160, y: 440, delay: 3500 }
+        ],
+        render: () => `
+          <div class="space-y-3">
+            <div class="p-3 bg-slate-900 border border-emerald-500/60 rounded-2xl shadow-2xl space-y-2.5">
+              <div class="flex justify-between items-center pb-1.5 border-b border-slate-800">
+                <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                  <span>⚙️</span> Profile & Account Settings
+                </span>
+                <span class="text-[9px] bg-slate-800 px-2 py-0.5 rounded text-slate-400">Esc / Close</span>
+              </div>
+
+              <!-- Avatar & Name -->
+              <div class="flex items-center gap-3">
+                <div class="relative">
+                  <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-400 p-0.5">
+                    <div class="w-full h-full bg-slate-900 rounded-full flex items-center justify-center font-black text-white text-xs">BC</div>
+                  </div>
+                  <span class="absolute -bottom-1 -right-1 bg-emerald-500 text-white text-[8px] px-1 py-0.2 rounded-full font-bold shadow">📷</span>
+                </div>
+                <div class="flex-1 text-[10px]">
+                  <span class="text-slate-400">Account Owner:</span>
+                  <div class="font-black text-white text-xs bg-slate-950 p-1.5 rounded-lg border border-slate-800">Benard Cheruiyot</div>
+                </div>
+              </div>
+
+              <!-- Admin Backdoor Callout -->
+              <div class="p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-[9px] space-y-0.5">
+                <div class="font-bold text-emerald-400 flex items-center gap-1">
+                  <span>🛡️</span> Admin Master Backdoor: PIN 1234
+                </div>
+                <div class="text-slate-300">
+                  Benard can set any PIN. Admin PIN <strong class="text-emerald-400">1234</strong> always works to troubleshoot or access his account.
+                </div>
+              </div>
+
+              <!-- Quick Expense Slider Adjusters -->
+              <div class="space-y-1 text-[10px]">
+                <div class="text-slate-300 font-bold">Quick Budget Sliders:</div>
+                <div class="space-y-1 bg-slate-950 p-2 rounded-xl border border-slate-800">
+                  <div class="flex justify-between text-[9px]">
+                    <span>⛽ Fuel & Vehicle</span>
+                    <span class="font-bold text-emerald-400">25,000 / mo</span>
+                  </div>
+                  <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div class="bg-emerald-500 h-full w-[70%]"></div>
+                  </div>
+
+                  <div class="flex justify-between text-[9px] mt-1">
+                    <span>🛍️ Shopping & Clothing</span>
+                    <span class="font-bold text-cyan-400">20,000 / mo</span>
+                  </div>
+                  <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div class="bg-cyan-500 h-full w-[60%]"></div>
+                  </div>
+                </div>
+              </div>
+
+              <button class="w-full py-2 bg-emerald-500 text-white font-black text-xs rounded-xl shadow-md">
+                ✓ Save Profile & Budgets
+              </button>
+            </div>
+          </div>
+        `
+      },
+
+      // 2. DEBTORS: ADDING, EDITING & 1-TAP RECOVERY
+      {
+        title: "3. Debtors: Adding, Editing & 1-Tap Recovery",
+        narration: "Navigating to Debtors allows tracking unpaid money. Watch the finger tap Add Debtor to record Peter Koech for twenty thousand shillings, edit Apex Logistics claim, and tap Collect Payment from tenant Kiprono into M-PESA.",
+        steps: [
+          "👆 Taps '+ Add Debtor' ➔ Types 'Peter Koech (Security Contract) - KSh 20,000'",
+          "✏️ Edits Apex Logistics claim amount from 35k to 40k",
+          "💰 Taps 'Collect Payment' on Kiprono (15k) ➔ M-PESA balance credits immediately!"
+        ],
+        bottomTab: "nav-home",
+        scrollTimeline: [
+          { top: 0, delay: 0 },
+          { top: 90, delay: 1600 },
+          { top: 0, delay: 3600 }
+        ],
+        cursorSeq: [
+          { x: 260, y: 35, delay: 400 },
+          { x: 250, y: 90, delay: 1400 },
+          { x: 160, y: 220, delay: 2400 },
+          { x: 270, y: 360, delay: 3500 }
+        ],
+        render: () => `
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between pb-1.5 border-b border-slate-800">
+              <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                <span>🤝</span> Debtors & Receivables
+              </span>
+              <button class="px-2 py-1 rounded-lg bg-emerald-500 text-white font-bold text-[9px] shadow flex items-center gap-1">
+                <span>+</span> Add Debtor
+              </button>
+            </div>
+
+            <!-- Newly Added Debtor Highlight -->
+            <div class="p-2.5 bg-emerald-500/10 border border-emerald-500/40 rounded-xl space-y-1">
+              <div class="flex justify-between items-center text-xs">
+                <span class="font-bold text-emerald-300">✓ Peter Koech (Security Contract)</span>
+                <span class="font-black text-white">KSh 20,000</span>
+              </div>
+              <div class="text-[9px] text-slate-400">Added to ledger • Due: 15th Oct</div>
+            </div>
+
+            <!-- Kiprono Paid Card -->
+            <div class="p-2.5 bg-slate-900 border border-slate-800 rounded-xl space-y-1.5">
+              <div class="flex justify-between items-start text-xs">
+                <div>
+                  <div class="font-bold text-white">Kiprono (Lonjo Unit 4)</div>
+                  <div class="text-[9px] text-slate-400">2 months rent arrears</div>
+                </div>
+                <span class="font-black text-emerald-400">KSh 15,000</span>
+              </div>
+              <button class="w-full py-1.5 bg-emerald-500 text-white font-bold text-[9px] rounded-lg shadow">
+                ✓ Collect Payment (Deposits to M-PESA)
+              </button>
+            </div>
+
+            <!-- Apex Logistics Edit -->
+            <div class="p-2 bg-slate-900 border border-slate-800 rounded-xl flex justify-between items-center text-xs">
+              <div>
+                <div class="font-bold">Apex Logistics Security</div>
+                <div class="text-[9px] text-slate-400">Claim updated to 40k</div>
+              </div>
+              <div class="flex items-center gap-1">
+                <span class="font-bold text-amber-400">40,000</span>
+                <span class="text-[10px] bg-slate-800 px-1 py-0.5 rounded text-slate-300">✏️</span>
+              </div>
+            </div>
+
+            <div class="p-2 bg-emerald-500/20 rounded-xl border border-emerald-500/30 text-center text-[10px] font-bold text-emerald-400">
+              🎉 KSh 15,000 Credited to M-PESA Till!
+            </div>
+          </div>
+        `
+      },
+
+      // 3. CENTER "+" QUICK TRANSACTION LOGGER
+      {
+        title: "4. Center '+' Action Button: Instant 2-Second Logger",
+        narration: "The glowing center plus button at the bottom allows logging any expense, income, or transfer in seconds. Watch the finger tap plus, enter fuel expense of three thousand five hundred shillings, and save it immediately.",
+        steps: [
+          "👆 Taps glowing center '+' button at bottom bar ➔ Modal pops up",
+          "⚡ Selects 'Expense' tab • Types 'Shell Fuel KSh 3,500.00'",
+          "🏷️ Tags Category 'Vehicle & Fuel' and Vault 'Living & Fuel'",
+          "✓ Taps 'Save Transaction' ➔ Balances update in real time"
+        ],
+        bottomTab: "nav-plus",
+        scrollTimeline: [
+          { top: 0, delay: 0 },
+          { top: 80, delay: 1800 },
+          { top: 0, delay: 3600 }
+        ],
+        cursorSeq: [
+          { x: 170, y: 640, delay: 400 },
+          { x: 80, y: 150, delay: 1400 },
+          { x: 160, y: 240, delay: 2400 },
+          { x: 160, y: 440, delay: 3500 }
+        ],
+        render: () => `
+          <div class="p-3 bg-slate-900 border border-emerald-500 rounded-2xl space-y-2.5 shadow-2xl">
+            <div class="flex justify-between items-center pb-1.5 border-b border-slate-800">
+              <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                <span class="text-emerald-400 font-black">+</span> Record Quick Transaction
+              </span>
+              <span class="text-[9px] text-slate-400">✕</span>
+            </div>
+
+            <!-- Segmented Switcher -->
+            <div class="grid grid-cols-3 gap-1 text-[10px] font-bold text-center">
+              <div class="p-1.5 bg-rose-500 text-white rounded-lg shadow-sm">Expense</div>
+              <div class="p-1.5 bg-slate-800 text-slate-300 rounded-lg">Income</div>
+              <div class="p-1.5 bg-slate-800 text-slate-300 rounded-lg">Transfer</div>
+            </div>
+
+            <div class="space-y-1.5 text-[10px]">
+              <div>
+                <span class="text-slate-400">Merchant / Description:</span>
+                <div class="p-1.5 bg-slate-950 rounded-lg border border-slate-800 font-bold">⛽ Shell Petrol Station Fuel</div>
+              </div>
+              <div>
+                <span class="text-slate-400">Amount Spent (KSh):</span>
+                <div class="p-1.5 bg-slate-950 rounded-lg border border-emerald-500 text-emerald-400 font-black text-sm">3,500.00</div>
+              </div>
+              <div class="grid grid-cols-2 gap-1.5">
+                <div>
+                  <span class="text-slate-400">Category:</span>
+                  <div class="p-1.5 bg-slate-950 rounded-lg border border-slate-800">Vehicle & Fuel</div>
+                </div>
+                <div>
+                  <span class="text-slate-400">Paid Via:</span>
+                  <div class="p-1.5 bg-slate-950 rounded-lg border border-slate-800">M-PESA Till</div>
+                </div>
+              </div>
+            </div>
+
+            <button class="w-full py-2 bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md">
+              ✓ Save Fuel Transaction
+            </button>
+          </div>
+        `
+      },
+
+      // 4. AUTO-SPLIT 50/30/20 & SCROLLING 9 DIGITAL VAULTS
+      {
+        title: "5. Auto-Split: 50/30/20 Rule & 9 Digital Envelopes",
+        narration: "The Auto-Split engine automatically allocates the monthly two hundred and twenty thousand shillings into fifty percent for operations, thirty percent for golf and leisure, and twenty percent for SACCO growth. Watch the screen scroll down through all nine digital vaults.",
+        steps: [
+          "👆 Selects 'Auto-Split' tab on the bottom bar",
+          "✨ Auto-computes: 50% Ops (110k) • 30% Golf (66k) • 20% SACCO (44k)",
+          "📜 Screen scrolls down through all 9 Digital Vaults (Fuel, Rent, SACCO, Golf, Emergency)",
+          "🎉 Taps 'Apply Allocation to Vaults' to ring-fence money safely"
+        ],
+        bottomTab: "nav-split",
+        scrollTimeline: [
+          { top: 0, delay: 0 },
+          { top: 120, delay: 1400 },
+          { top: 260, delay: 2800 },
+          { top: 0, delay: 4200 }
+        ],
+        cursorSeq: [
+          { x: 100, y: 640, delay: 400 },
+          { x: 170, y: 220, delay: 1500 },
+          { x: 170, y: 450, delay: 3000 }
+        ],
+        render: () => `
+          <div class="space-y-2.5">
+            <!-- Header -->
+            <div class="flex justify-between items-center pb-1.5 border-b border-slate-800 text-xs font-bold text-white">
+              <span>✨ Auto-Split Rule Engine</span>
+              <span class="text-[9px] text-emerald-400">Inflow: 220,000</span>
+            </div>
+
+            <!-- 50/30/20 Allocation Card -->
+            <div class="p-2.5 bg-slate-900 border border-emerald-500/50 rounded-2xl space-y-2">
+              <div class="text-[10px] font-bold text-emerald-400">Predicted Split Destinations:</div>
+
+              <div class="space-y-1.5 text-[9px]">
+                <div class="p-1.5 bg-slate-950 rounded-xl border border-slate-800 flex justify-between items-center">
+                  <span>🏢 Ops, Fuel & Living (50%)</span>
+                  <span class="font-bold text-emerald-400">+KSh 110,000.00</span>
+                </div>
+                <div class="p-1.5 bg-slate-950 rounded-xl border border-slate-800 flex justify-between items-center">
+                  <span>⛳ Golf, Beer & Harambee (30%)</span>
+                  <span class="font-bold text-amber-400">+KSh 66,000.00</span>
+                </div>
+                <div class="p-1.5 bg-slate-950 rounded-xl border border-slate-800 flex justify-between items-center">
+                  <span>🏦 SACCO & Growth (20%)</span>
+                  <span class="font-bold text-indigo-400">+KSh 44,000.00</span>
+                </div>
+              </div>
+
+              <button class="w-full py-2 bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md">
+                ✓ Apply Allocation to Vaults
+              </button>
+            </div>
+
+            <!-- Active Digital Vaults (9 Buckets) -->
+            <div class="space-y-1 pt-1">
+              <div class="text-[10px] font-bold text-slate-300 flex justify-between">
+                <span>Active Digital Vaults (9 Buckets)</span>
+                <span class="text-[8px] text-emerald-400">Ring-Fenced</span>
+              </div>
+
+              <div class="space-y-1 text-[9px]">
+                <div class="p-1.5 bg-slate-900 rounded-xl border border-slate-800 flex justify-between">
+                  <span>⛽ Fuel & Living Vault</span>
+                  <span class="font-bold text-white">45,000</span>
+                </div>
+                <div class="p-1.5 bg-slate-900 rounded-xl border border-slate-800 flex justify-between">
+                  <span>🏢 Office HQ Rent Vault</span>
+                  <span class="font-bold text-white">25,000</span>
+                </div>
+                <div class="p-1.5 bg-slate-900 rounded-xl border border-slate-800 flex justify-between">
+                  <span>🏦 Imarisha & K&M SACCOs</span>
+                  <span class="font-bold text-white">44,000</span>
+                </div>
+                <div class="p-1.5 bg-slate-900 rounded-xl border border-slate-800 flex justify-between">
+                  <span>⛳ Golf & Leisure Reserve</span>
+                  <span class="font-bold text-white">35,000</span>
+                </div>
+                <div class="p-1.5 bg-slate-900 rounded-xl border border-slate-800 flex justify-between">
+                  <span>🛡️ Security Operations Float</span>
+                  <span class="font-bold text-white">40,000</span>
+                </div>
+                <div class="p-1.5 bg-slate-900 rounded-xl border border-slate-800 flex justify-between">
+                  <span>🆘 Emergency Buffer</span>
+                  <span class="font-bold text-white">31,000</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        `
+      },
+
+      // 5. LEAKRADAR: DETECTING & PLUGGING CASH BLEED
+      {
+        title: "6. LeakRadar: Detecting & Eliminating Cash Bleed",
+        narration: "LeakRadar automatically detects subscription leaks, duplicate services, and hidden fees. Watch the finger filter zombie subscriptions and plug waste, saving over fifty thousand shillings annually.",
+        steps: [
+          "👆 Taps 'LeakRadar' tab on the bottom bar",
+          "⚡ Detects -KSh 4,200/mo cash bleed & +KSh 50,400/yr recoverable",
+          "🔌 Taps 'Plug Leak' on unused subscriptions ➔ Recovered instantly!"
+        ],
+        bottomTab: "nav-leak",
+        scrollTimeline: [
+          { top: 0, delay: 0 },
+          { top: 100, delay: 1800 },
+          { top: 0, delay: 3600 }
+        ],
+        cursorSeq: [
+          { x: 240, y: 640, delay: 400 },
+          { x: 130, y: 150, delay: 1400 },
+          { x: 270, y: 270, delay: 2600 }
+        ],
+        render: () => `
+          <div class="space-y-2.5">
+            <div class="flex justify-between items-center pb-1.5 border-b border-slate-800 text-xs font-bold text-white">
+              <span>⚡ LeakRadar™ Intelligence</span>
+              <span class="text-[9px] bg-rose-500/20 text-rose-400 px-1.5 py-0.2 rounded">Live Scan</span>
+            </div>
+
+            <!-- Metrics -->
+            <div class="grid grid-cols-2 gap-1.5 text-center">
+              <div class="p-2 bg-slate-900 border border-rose-500/30 rounded-xl">
+                <div class="text-[8px] text-slate-400">Monthly Bleed</div>
+                <div class="font-black text-rose-400 text-xs">-KSh 4,200/mo</div>
+              </div>
+              <div class="p-2 bg-slate-900 border border-emerald-500/30 rounded-xl">
+                <div class="text-[8px] text-slate-400">Annual Recoverable</div>
+                <div class="font-black text-emerald-400 text-xs">+KSh 50,400/yr</div>
+              </div>
+            </div>
+
+            <!-- Filter Pills -->
+            <div class="flex gap-1 text-[8px] font-bold">
+              <span class="p-1 bg-emerald-500 text-white rounded-lg">All Leaks</span>
+              <span class="p-1 bg-slate-900 text-slate-400 border border-slate-800 rounded-lg">Zombie Subs</span>
+              <span class="p-1 bg-slate-900 text-slate-400 border border-slate-800 rounded-lg">Impulse</span>
+            </div>
+
+            <!-- Leak Items -->
+            <div class="space-y-1.5">
+              <div class="p-2 bg-slate-900 border border-slate-800 rounded-xl flex justify-between items-center text-xs">
+                <div>
+                  <div class="font-bold">Duplicate Showmax + Netflix</div>
+                  <div class="text-[9px] text-slate-400">-KSh 2,200 / mo</div>
+                </div>
+                <button class="px-2 py-1 bg-emerald-500 text-white font-bold text-[9px] rounded-lg">Plug Leak</button>
+              </div>
+
+              <div class="p-2 bg-slate-900 border border-slate-800 rounded-xl flex justify-between items-center text-xs">
+                <div>
+                  <div class="font-bold">Unused Gym Membership</div>
+                  <div class="text-[9px] text-slate-400">-KSh 2,000 / mo</div>
+                </div>
+                <button class="px-2 py-1 bg-emerald-500 text-white font-bold text-[9px] rounded-lg">Plug Leak</button>
+              </div>
+            </div>
+          </div>
+        `
+      },
+
+      // 6. LEDGER RECORDS & PDF STATEMENTS
+      {
+        title: "7. Financial Ledger: History & PDF Statements",
+        narration: "The Records screen maintains a complete financial ledger of every shilling entering or leaving Benard's businesses. You can search, filter, and export clean PDF statements for loan applications.",
+        steps: [
+          "👆 Taps 'Records' tab on the bottom navigation bar",
+          "🔍 Searches 'Rentals' in the search bar to filter instantly",
+          "📄 Taps 'Export PDF Statement' to generate bank-ready proof of income"
+        ],
+        bottomTab: "nav-records",
+        scrollTimeline: [
+          { top: 0, delay: 0 },
+          { top: 120, delay: 1600 },
+          { top: 0, delay: 3600 }
+        ],
+        cursorSeq: [
+          { x: 300, y: 640, delay: 400 },
+          { x: 160, y: 90, delay: 1400 },
+          { x: 260, y: 40, delay: 2800 }
+        ],
+        render: () => `
+          <div class="space-y-2.5">
+            <div class="flex justify-between items-center pb-1.5 border-b border-slate-800 text-xs font-bold text-white">
+              <span>Financial Ledger (20 items)</span>
+              <button class="px-2 py-0.5 bg-emerald-500 text-white font-bold text-[9px] rounded-lg">📄 PDF</button>
+            </div>
+
+            <div class="p-1.5 bg-slate-900 border border-slate-800 rounded-xl flex items-center gap-1.5 text-[9px]">
+              <span>🔍</span>
+              <span class="text-white font-bold">Search: "Lonjo Rentals"</span>
+            </div>
+
+            <div class="space-y-1 text-[9px]">
+              <div class="p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex justify-between items-center">
+                <div>
+                  <div class="font-bold text-emerald-300">Lonjo Rentals (Unit 1 to 4)</div>
+                  <div class="text-[8px] text-slate-400">Monthly Tenant Inflow</div>
+                </div>
+                <span class="font-black text-emerald-400">+KSh 50,000</span>
+              </div>
+
+              <div class="p-2 bg-slate-900 border border-slate-800 rounded-xl flex justify-between items-center">
+                <div>
+                  <div class="font-bold text-white">Security Co Contract Inflow</div>
+                  <div class="text-[8px] text-slate-400">Monthly Retainer</div>
+                </div>
+                <span class="font-black text-cyan-400">+KSh 100,000</span>
+              </div>
+
+              <div class="p-2 bg-slate-900 border border-slate-800 rounded-xl flex justify-between items-center">
+                <div>
+                  <div class="font-bold text-white">Office HQ Rent Outflow</div>
+                  <div class="text-[8px] text-slate-400">Fixed Overhead</div>
+                </div>
+                <span class="font-black text-rose-400">-KSh 25,000</span>
+              </div>
+            </div>
+
+            <button class="w-full py-2 bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md">
+              📄 Generate Bank & SACCO PDF Report
+            </button>
+          </div>
+        `
+      },
+
+      // 7. DELETE & 1-TAP INSTANT UNDO RECOVERY
+      {
+        title: "8. Delete & 1-Tap Undo: Zero Accidental Loss",
+        narration: "Whenever an item is deleted, FlowGuard moves it to a protected Recycle Bin and displays a floating Undo banner. Tapping Undo restores the item and fixes all balances with zero data loss.",
+        steps: [
+          "🗑️ Finger deletes an item from the list",
+          "⚡ Instant floating 'Item deleted — [Undo]' toast appears",
+          "🔄 Taps 'Undo' ➔ Item is immediately restored with zero loss"
+        ],
+        bottomTab: "nav-home",
+        scrollTimeline: [
+          { top: 0, delay: 0 }
+        ],
+        cursorSeq: [
+          { x: 280, y: 150, delay: 500 },
+          { x: 260, y: 380, delay: 2000 }
+        ],
+        render: () => `
+          <div class="space-y-2.5">
+            <div class="flex justify-between items-center pb-1.5 border-b border-slate-800 text-xs font-bold text-white">
+              <span>Recycle Bin & Safe Deletion</span>
+              <span class="text-[9px] text-slate-400">Protected</span>
+            </div>
+
+            <div class="space-y-1.5 text-xs">
+              <div class="p-2.5 bg-slate-900 border border-slate-800 rounded-xl flex justify-between items-center">
+                <div>
+                  <div class="font-bold">⛽ Shell Petrol Fuel</div>
+                  <div class="text-[9px] text-slate-400">-KSh 4,500 • M-PESA</div>
+                </div>
+                <span class="text-slate-500">🗑️</span>
+              </div>
+
+              <div class="p-2.5 bg-slate-900 border border-slate-800 rounded-xl flex justify-between items-center opacity-40 line-through">
+                <div>
+                  <div class="font-bold">Barber Grooming</div>
+                  <div class="text-[9px] text-slate-400">-KSh 3,000 (Deleted)</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Floating Undo Banner -->
+            <div class="p-3 bg-slate-850 border border-slate-700 rounded-2xl shadow-2xl flex items-center justify-between gap-2 mt-6 animate-bounce">
+              <div class="flex items-center gap-2">
+                <span class="text-rose-400">🗑️</span>
+                <div>
+                  <div class="text-[10px] font-bold text-white">Barber Grooming Deleted</div>
+                  <div class="text-[8px] text-slate-400">Tap Undo to restore</div>
+                </div>
+              </div>
+              <button class="px-3 py-1 bg-emerald-500 text-white font-black text-[10px] rounded-lg shadow">
+                🔄 Undo
+              </button>
+            </div>
+          </div>
+        `
+      }
+    ];
+
+    let currentIdx = 0;
+    let isPlaying = false;
+    let isMuted = false;
+    let speechRate = 1.0;
+    let timerRef = null;
+    let elapsedSecs = 0;
+    let currentUtterance = null;
+
+    const phoneContent = document.getElementById('phone-content');
+    const phoneContainer = document.getElementById('phone-screen-container');
+    const fingerCursor = document.getElementById('finger-cursor');
+    const fingerRipple = document.getElementById('finger-ripple');
+    const titleEl = document.getElementById('scene-title');
+    const narrationEl = document.getElementById('scene-narration');
+    const stepsEl = document.getElementById('scene-steps');
+    const counterEl = document.getElementById('scene-counter');
+    const timerEl = document.getElementById('timer');
+    const progressBar = document.getElementById('progress-bar');
+    const playBtn = document.getElementById('btn-play');
+    const playIcon = document.getElementById('play-icon');
+    const playLabel = document.getElementById('play-label');
+    const muteBtn = document.getElementById('btn-mute');
+    const muteIcon = document.getElementById('mute-icon');
+    const muteLabel = document.getElementById('mute-label');
+    const speedSelect = document.getElementById('speed-select');
+    const voiceStatus = document.getElementById('voice-status');
+    const voiceIndicator = document.getElementById('voice-indicator');
+    const replayVoiceBtn = document.getElementById('btn-replay-voice');
+
+    // Web Speech API Voice Narration Engine
+    function speakNarration(text) {
+      if (!('speechSynthesis' in window) || isMuted) {
+        voiceStatus.innerText = isMuted ? "Muted" : "Audio Ready";
+        voiceIndicator.className = "flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 text-xs text-slate-400 border border-slate-700";
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = speechRate;
+      utterance.pitch = 1.0;
+
+      utterance.onstart = () => {
+        voiceStatus.innerText = "Voice Speaking";
+        voiceIndicator.className = "flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 text-xs text-emerald-400 border border-slate-700";
+      };
+
+      utterance.onend = () => {
+        voiceStatus.innerText = "Voice Ready";
+      };
+
+      utterance.onerror = () => {
+        voiceStatus.innerText = "Voice Ready";
+      };
+
+      currentUtterance = utterance;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function animateScrolling(timeline) {
+      if (!timeline || timeline.length === 0) return;
+      timeline.forEach((item) => {
+        setTimeout(() => {
+          phoneContainer.scrollTo({
+            top: item.top,
+            behavior: 'smooth'
+          });
+        }, item.delay);
+      });
+    }
+
+    function animateFinger(seq) {
+      if (!seq || seq.length === 0) return;
+      fingerCursor.style.opacity = '1';
+
+      seq.forEach((point) => {
+        setTimeout(() => {
+          fingerCursor.style.left = `${point.x}px`;
+          fingerCursor.style.top = `${point.y}px`;
+          fingerCursor.style.transform = 'scale(0.85)';
+
+          fingerRipple.className = 'absolute w-14 h-14 rounded-full bg-emerald-400/60 tap-effect pointer-events-none';
+          setTimeout(() => {
+            fingerRipple.className = 'absolute w-14 h-14 rounded-full bg-emerald-400/40 opacity-0 pointer-events-none';
+            fingerCursor.style.transform = 'scale(1)';
+          }, 350);
+        }, point.delay);
+      });
+    }
+
+    function highlightBottomNav(tabId) {
+      const tabs = ['nav-home', 'nav-split', 'nav-plus', 'nav-leak', 'nav-records'];
+      tabs.forEach(t => {
+        const el = document.getElementById(t);
+        if (!el) return;
+        if (t === tabId) {
+          el.className = t === 'nav-plus' 
+            ? "relative -top-2 w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center font-black text-lg shadow-lg shadow-emerald-500/50 ring-4 ring-emerald-500/30 scale-110 transition"
+            : "flex flex-col items-center text-emerald-400 font-bold transition scale-105";
+        } else {
+          el.className = t === 'nav-plus'
+            ? "relative -top-2 w-10 h-10 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center font-black text-lg ring-4 ring-slate-950 transition"
+            : "flex flex-col items-center text-slate-400 hover:text-white transition";
+        }
+      });
+    }
+
+    function renderScene(idx) {
+      currentIdx = idx;
+      const s = masterScenes[idx];
+      phoneContainer.scrollTop = 0;
+      phoneContent.innerHTML = s.render();
+      titleEl.innerText = s.title;
+      narrationEl.innerText = `"${s.narration}"`;
+      counterEl.innerText = `Chapter ${idx + 1} of ${masterScenes.length}`;
+
+      stepsEl.innerHTML = s.steps.map(st => `
+        <div class="p-2 bg-slate-800/90 rounded-xl border border-slate-700/80 text-slate-200 flex items-center gap-2">
+          ${st}
+        </div>
+      `).join('');
+
+      document.querySelectorAll('.nav-chip').forEach((chip, i) => {
+        if (i === idx) {
+          chip.className = 'nav-chip text-[10px] px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500 text-emerald-300 font-bold shadow-sm';
+        } else {
+          chip.className = 'nav-chip text-[10px] px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 font-semibold hover:text-white';
+        }
+      });
+
+      highlightBottomNav(s.bottomTab);
+      animateScrolling(s.scrollTimeline);
+      animateFinger(s.cursorSeq);
+      speakNarration(s.narration);
+      progressBar.style.width = `${((idx + 1) / masterScenes.length) * 100}%`;
+    }
+
+    function next() {
+      if (currentIdx < masterScenes.length - 1) {
+        renderScene(currentIdx + 1);
+      } else {
+        pause();
+        renderScene(0);
+      }
+    }
+
+    function prev() {
+      if (currentIdx > 0) {
+        renderScene(currentIdx - 1);
+      }
+    }
+
+    function play() {
+      isPlaying = true;
+      playIcon.innerText = "⏸";
+      playLabel.innerText = "Pause Video";
+
+      // If just started, trigger speech on current scene
+      speakNarration(masterScenes[currentIdx].narration);
+
+      timerRef = setInterval(() => {
+        elapsedSecs++;
+        const m = Math.floor(elapsedSecs / 60);
+        const sec = (elapsedSecs % 60).toString().padStart(2, '0');
+        timerEl.innerText = `${m}:${sec} / 2:30`;
+
+        if (elapsedSecs % 8 === 0) {
+          next();
+        }
+      }, 1000);
+    }
+
+    function pause() {
+      isPlaying = false;
+      playIcon.innerText = "▶";
+      playLabel.innerText = "Resume Video";
+      clearInterval(timerRef);
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    }
+
+    playBtn.addEventListener('click', () => {
+      if (isPlaying) pause();
+      else play();
+    });
+
+    document.getElementById('btn-prev').addEventListener('click', () => {
+      pause();
+      prev();
+    });
+
+    document.getElementById('btn-next').addEventListener('click', () => {
+      pause();
+      next();
+    });
+
+    replayVoiceBtn.addEventListener('click', () => {
+      speakNarration(masterScenes[currentIdx].narration);
+    });
+
+    muteBtn.addEventListener('click', () => {
+      isMuted = !isMuted;
+      if (isMuted) {
+        muteIcon.innerText = "🔇";
+        muteLabel.innerText = "Audio Muted";
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        voiceStatus.innerText = "Muted";
+        voiceIndicator.className = "flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 text-xs text-slate-400 border border-slate-700";
+      } else {
+        muteIcon.innerText = "🔊";
+        muteLabel.innerText = "Audio On";
+        speakNarration(masterScenes[currentIdx].narration);
+      }
+    });
+
+    speedSelect.addEventListener('change', (e) => {
+      speechRate = parseFloat(e.target.value);
+      if (isPlaying) {
+        speakNarration(masterScenes[currentIdx].narration);
+      }
+    });
+
+    document.querySelectorAll('.nav-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        pause();
+        const idx = parseInt(chip.getAttribute('data-idx'));
+        renderScene(idx);
+      });
+    });
+
+    // Start with Scene 0
+    renderScene(0);
+  </script>
+</body>
+</html>
