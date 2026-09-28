@@ -17,6 +17,7 @@ import { IncomeAllocatorModal } from './components/IncomeAllocatorModal';
 import { QuickTransactionModal } from './components/QuickTransactionModal';
 import { UndoToast } from './components/UndoToast';
 import { MobileFrame } from './components/MobileFrame';
+import { InstallAppBanner } from './components/InstallAppBanner';
 import { BarChart3, FileText, TrendingUp, TrendingDown, Users, ArrowLeft } from 'lucide-react';
 
 const TAB_TITLES: Record<string, { title: string; subtitle: string }> = {
@@ -45,6 +46,10 @@ const MainContent: React.FC = () => {
   return (
     <MobileFrame>
       <Header />
+
+      <div className="px-4 print:hidden">
+        <InstallAppBanner />
+      </div>
 
       {/* Back Navigation Bar for Inner Pages */}
       {selectedTab !== 'dashboard' && (

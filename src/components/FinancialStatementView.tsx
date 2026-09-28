@@ -11,9 +11,12 @@ import {
   TrendingDown, 
   Share2, 
   Copy, 
-  ChevronDown 
+  ChevronDown,
+  Cloud,
+  FileCheck
 } from 'lucide-react';
 import { DynamicIcon } from '../utils/iconMap';
+import { downloadPDFStatement, shareOrSavePDFStatement, openGoogleDriveUpload } from '../utils/pdfExport';
 
 export const FinancialStatementView: React.FC = () => {
   const { 
@@ -22,7 +25,7 @@ export const FinancialStatementView: React.FC = () => {
     accounts, 
     formatMoney, 
     currency, 
-    activeLeaks 
+    user 
   } = useFinance();
 
   const [periodPreset, setPeriodPreset] = useState<'week' | 'month' | 'last_month' | 'year' | 'custom'>('month');
@@ -35,6 +38,7 @@ export const FinancialStatementView: React.FC = () => {
     return new Date().toISOString().split('T')[0];
   });
   const [copied, setCopied] = useState(false);
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
 
   // Compute date range according to selected preset
   const now = new Date();
@@ -98,6 +102,44 @@ export const FinancialStatementView: React.FC = () => {
   );
   const periodLeakSum = periodLeaks.reduce((sum, t) => sum + t.amount, 0);
 
+  const getStatementData = () => ({
+    userName: user?.name || 'Benard Cheruiyot',
+    startDate: startStr,
+    endDate: endStr,
+    periodIncome,
+    periodExpenses,
+    netSavings,
+    savingsRate,
+    currency,
+    transactions: filteredTxs,
+    categories,
+    accounts,
+    periodLeaksSum: periodLeakSum,
+    periodLeaksCount: periodLeaks.length
+  });
+
+  const handleDownloadPDF = () => {
+    downloadPDFStatement(getStatementData());
+    setExportNotice('✓ Official PDF Statement Downloaded!');
+    setTimeout(() => setExportNotice(null), 3500);
+  };
+
+  const handleSaveToGoogleDrive = () => {
+    openGoogleDriveUpload(getStatementData());
+    setExportNotice('☁️ PDF Generated & Google Drive Opened in New Tab!');
+    setTimeout(() => setExportNotice(null), 4000);
+  };
+
+  const handleShareStatement = async () => {
+    const res = await shareOrSavePDFStatement(getStatementData());
+    if (res.method === 'share_sheet') {
+      setExportNotice('📤 Shared via Device Sheet (Select "Save to Drive" or WhatsApp)');
+    } else {
+      setExportNotice('✓ Statement Downloaded!');
+    }
+    setTimeout(() => setExportNotice(null), 3500);
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -143,6 +185,8 @@ export const FinancialStatementView: React.FC = () => {
     link.download = `flowguard-statement-${startStr}-to-${endStr}.csv`;
     link.click();
     URL.revokeObjectURL(url);
+    setExportNotice('✓ Excel / CSV Statement Exported!');
+    setTimeout(() => setExportNotice(null), 3000);
   };
 
   const handleCopySummary = () => {
@@ -162,41 +206,65 @@ Generated via FlowGuard App.`;
     <div className="space-y-4 pb-20 pt-1">
       
       {/* Top Banner (hidden during print) */}
-      <div className="p-5 rounded-3xl bg-gradient-to-br from-emerald-950/70 via-slate-900 to-slate-900 border border-emerald-500/30 shadow-2xl print:hidden space-y-3">
-        <div className="flex items-center justify-between">
+      <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-emerald-950/70 via-slate-900 to-slate-900 border border-emerald-500/30 shadow-2xl print:hidden space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div className="p-2.5 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
               <FileText size={22} />
             </div>
             <div>
               <h2 className="text-base font-bold text-white tracking-tight">
-                Financial Statement Generator
+                Financial Statement & Cloud Export
               </h2>
               <p className="text-[11px] text-emerald-300/80 font-medium">
-                Official Weekly, Monthly, or Annual Audit
+                Bank-ready PDF, Excel & Google Drive Sync
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          {/* Action Export Buttons */}
+          <div className="flex items-center gap-1.5 flex-wrap">
             <button
-              onClick={handlePrint}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1 transition"
-              title="Print / PDF Statement"
+              onClick={handleDownloadPDF}
+              className="px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 text-xs font-black flex items-center gap-1.5 transition shadow-lg shadow-emerald-500/20 hover:scale-102 active:scale-98"
+              title="Download Official PDF Statement"
             >
-              <Printer size={15} />
-              <span className="hidden sm:inline">Print/PDF</span>
+              <FileCheck size={15} />
+              <span>Download PDF</span>
+            </button>
+            <button
+              onClick={handleSaveToGoogleDrive}
+              className="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-cyan-300 text-xs font-bold flex items-center gap-1.5 transition"
+              title="Save directly to Google Drive"
+            >
+              <Cloud size={15} />
+              <span>Google Drive</span>
+            </button>
+            <button
+              onClick={handleShareStatement}
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1 transition"
+              title="Share via Mobile Share Sheet"
+            >
+              <Share2 size={15} />
             </button>
             <button
               onClick={handleExportStatementCSV}
-              className="p-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-bold flex items-center gap-1 transition shadow-md shadow-emerald-500/20"
-              title="Export CSV"
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1 transition"
+              title="Export CSV / Excel"
             >
               <Download size={15} />
-              <span className="hidden sm:inline">Export</span>
+              <span className="text-[10px]">Excel</span>
             </button>
           </div>
         </div>
+
+        {/* Live Notification Feedback Toast */}
+        {exportNotice && (
+          <div className="p-2 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center justify-between animate-in fade-in slide-in-from-top-1">
+            <span>{exportNotice}</span>
+            <button onClick={() => setExportNotice(null)} className="text-emerald-400 hover:text-white text-xs">✕</button>
+          </div>
+        )}
 
         {/* Period Selector Tabs */}
         <div className="space-y-2 pt-1 border-t border-slate-800">

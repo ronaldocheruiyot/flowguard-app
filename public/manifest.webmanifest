@@ -1,0 +1,57 @@
+{
+  "id": "/?source=pwa",
+  "name": "FlowGuard - Smart Finance & Leak Radar",
+  "short_name": "FlowGuard",
+  "description": "Instant Income Allocation, Digital Vaults & Money Leak Radar for Personal Finance",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "window-controls-overlay"],
+  "orientation": "portrait-primary",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "categories": ["finance", "productivity", "business"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Auto-Split Inflow",
+      "short_name": "Auto-Split",
+      "description": "Allocate income into digital vaults",
+      "url": "/?tab=split",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "LeakRadar Waste",
+      "short_name": "LeakRadar",
+      "description": "Scan and plug money leaks",
+      "url": "/?tab=leak",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Financial Statements",
+      "short_name": "Statements",
+      "description": "Generate audit PDF statements",
+      "url": "/?tab=records",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" rx="128" fill="#0f172a"/>
+  <circle cx="256" cy="256" r="210" fill="url(#emerald_glow)" opacity="0.4"/>
+  <path d="M256 64L384 128V240C384 340 330 416 256 448C182 416 128 340 128 240V128L256 64Z" fill="#10b981" stroke="#34d399" stroke-width="14"/>
+  <path d="M224 160H310M224 230H290M224 160V340" stroke="#ffffff" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+  <defs>
+    <radialGradient id="emerald_glow" cx="0.5" cy="0.5" r="0.5" fx="0.5" fy="0.5">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>
