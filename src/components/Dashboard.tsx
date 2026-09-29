@@ -48,6 +48,7 @@ export const Dashboard: React.FC = () => {
   } = useFinance();
 
   const [showVideoTour, setShowVideoTour] = useState(false);
+  const [showBreakdownModal, setShowBreakdownModal] = useState(false);
 
   const recentTransactions = transactions.slice(0, 6);
 
@@ -89,13 +90,24 @@ export const Dashboard: React.FC = () => {
             <span>Welcome, </span>
             <strong className="text-white">{user.name}</strong>
           </div>
-          <span className="flex items-center gap-1 text-emerald-400 text-[11px] bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30">
-            <TrendingUp size={12} /> {savingsRate}% Saved this month
-          </span>
+          <button
+            onClick={() => setShowBreakdownModal(true)}
+            className="flex items-center gap-1 text-emerald-400 text-[11px] bg-emerald-500/20 hover:bg-emerald-500/30 px-2 py-0.5 rounded-full border border-emerald-500/30 transition"
+            title="Tap to see how this is calculated"
+          >
+            <TrendingUp size={12} /> {savingsRate}% Saved this month ℹ️
+          </button>
         </div>
 
-        <div className="text-3xl font-black tracking-tight text-white mb-3">
-          {formatMoney(netWorth)}
+        <div 
+          onClick={() => setShowBreakdownModal(true)}
+          className="text-3xl font-black tracking-tight text-white mb-1 cursor-pointer hover:text-emerald-400 transition flex items-center justify-between group"
+          title="Click to see full account breakdown"
+        >
+          <span>{formatMoney(netWorth)}</span>
+          <span className="text-[10px] font-bold text-slate-400 group-hover:text-emerald-300 border border-slate-700 group-hover:border-emerald-500/40 px-2 py-0.5 rounded-lg">
+            View Breakdown ℹ️
+          </span>
         </div>
 
         {/* Expected Monthly vs Actual */}
@@ -131,6 +143,83 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Account Breakdown Modal */}
+      {showBreakdownModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-slate-900 border border-emerald-500/40 rounded-3xl w-full max-w-sm p-5 space-y-4 shadow-2xl text-white">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                  <span>📊</span> Overview Calculations Breakdown
+                </h3>
+                <p className="text-[10px] text-emerald-400 font-medium">
+                  How {formatMoney(netWorth)} was computed
+                </p>
+              </div>
+              <button onClick={() => setShowBreakdownModal(false)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              
+              {/* Accounts Sum */}
+              <div className="space-y-1.5 bg-slate-950 p-3 rounded-2xl border border-slate-800">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  1. Liquid Net Worth (All Accounts):
+                </div>
+                {accounts.map(acc => (
+                  <div key={acc.id} className="flex justify-between items-center text-[11px]">
+                    <span className="text-slate-300">{acc.name}:</span>
+                    <span className={`font-bold ${acc.balance < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                      {formatMoney(acc.balance)}
+                    </span>
+                  </div>
+                ))}
+                <div className="flex justify-between items-center pt-1.5 border-t border-slate-800 font-black text-xs text-white">
+                  <span>Total Net Worth:</span>
+                  <span className="text-emerald-400">{formatMoney(netWorth)}</span>
+                </div>
+              </div>
+
+              {/* 4 Inflow Streams Sum */}
+              <div className="space-y-1.5 bg-slate-950 p-3 rounded-2xl border border-slate-800">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  2. Monthly Inflow (4 Business Streams):
+                </div>
+                {incomeStreams.map(inc => (
+                  <div key={inc.id} className="flex justify-between items-center text-[11px]">
+                    <span className="text-slate-300">{inc.title}:</span>
+                    <span className="font-bold text-cyan-400">{formatMoney(inc.expectedMonthlyAmount)}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between items-center pt-1.5 border-t border-slate-800 font-black text-xs text-white">
+                  <span>Expected Monthly Total:</span>
+                  <span className="text-emerald-400">{formatMoney(totalExpectedMonthlyIncome)}/mo</span>
+                </div>
+              </div>
+
+              {/* Cashflow & Savings rate */}
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-[11px] space-y-1">
+                <div className="font-bold text-emerald-300">3. Monthly Savings Rate Formula:</div>
+                <div className="text-slate-300">
+                  Received ({formatMoney(monthlyIncome)}) - Spent ({formatMoney(monthlyExpenses)}) = <strong className="text-white">+{formatMoney(monthlyIncome - monthlyExpenses)} Net Surplus</strong>
+                </div>
+                <div className="text-emerald-400 font-bold text-[10px]">
+                  ✓ Savings Rate: {savingsRate}% of total inflows preserved
+                </div>
+              </div>
+
+            </div>
+
+            <button
+              onClick={() => setShowBreakdownModal(false)}
+              className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl shadow-lg transition"
+            >
+              Close Breakdown
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 2. Benard Cheruiyot Business Income Streams Card */}
       <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
