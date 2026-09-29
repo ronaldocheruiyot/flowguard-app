@@ -10,22 +10,43 @@ import {
   ArrowRight, 
   Fingerprint, 
   CheckCircle2, 
-  Sparkles 
+  Sparkles,
+  KeyRound,
+  ShieldAlert
 } from 'lucide-react';
 
 export const LoginScreen: React.FC = () => {
-  const { user, login, theme, formatMoney, totalExpectedMonthlyIncome, incomeStreams } = useFinance();
+  const { 
+    user, 
+    login, 
+    validateAdminPin,
+    verifyBiometric,
+    formatMoney, 
+    totalExpectedMonthlyIncome 
+  } = useFinance();
+
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
+  const [isAdminAuthModalOpen, setIsAdminAuthModalOpen] = useState(false);
+  const [adminPinInput, setAdminPinInput] = useState('');
+  const [adminPinError, setAdminPinError] = useState(false);
+  const [isScanningBiometrics, setIsScanningBiometrics] = useState(false);
 
-  const handleLogin = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (login(pin)) {
+  const checkPin = (inputPin: string) => {
+    // Check standard PIN
+    if (login(inputPin)) {
       setError(false);
-    } else {
-      setError(true);
-      setPin('');
+      return true;
     }
+    // Check if user entered Admin PIN directly
+    if (validateAdminPin(inputPin)) {
+      login(user.pin || '1234');
+      setError(false);
+      return true;
+    }
+    setError(true);
+    setTimeout(() => setPin(''), 600);
+    return false;
   };
 
   const handleKeypadPress = (digit: string) => {
@@ -33,12 +54,7 @@ export const LoginScreen: React.FC = () => {
       const nextPin = pin + digit;
       setPin(nextPin);
       if (nextPin.length === 4) {
-        if (login(nextPin)) {
-          setError(false);
-        } else {
-          setError(true);
-          setTimeout(() => setPin(''), 600);
-        }
+        checkPin(nextPin);
       }
     }
   };
@@ -48,8 +64,23 @@ export const LoginScreen: React.FC = () => {
     setError(false);
   };
 
-  const handleQuickDemoUnlock = () => {
-    login('1234');
+  const handleBiometricAuth = async () => {
+    setIsScanningBiometrics(true);
+    setTimeout(async () => {
+      const success = await verifyBiometric();
+      setIsScanningBiometrics(false);
+    }, 800);
+  };
+
+  const handleAdminPinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validateAdminPin(adminPinInput)) {
+      login(user.pin || '1234');
+      setIsAdminAuthModalOpen(false);
+    } else {
+      setAdminPinError(true);
+      setAdminPinInput('');
+    }
   };
 
   return (
@@ -76,7 +107,7 @@ export const LoginScreen: React.FC = () => {
               />
             ) : (
               <div className="w-full h-full bg-slate-900 rounded-[22px] flex items-center justify-center text-2xl font-black tracking-tight text-white">
-                {user.avatarText}
+                {user.avatarText || 'BC'}
               </div>
             )}
           </div>
@@ -128,7 +159,7 @@ export const LoginScreen: React.FC = () => {
 
           {error && (
             <p className="text-xs text-rose-400 font-bold mt-2 animate-bounce">
-              Incorrect PIN. (Default: 1234)
+              Incorrect PIN. (Default: 1234 or Admin: 9999)
             </p>
           )}
         </div>
@@ -146,15 +177,15 @@ export const LoginScreen: React.FC = () => {
             </button>
           ))}
           
-          {/* Quick Unlock */}
+          {/* Biometric Fingerprint Button */}
           <button
             type="button"
-            onClick={handleQuickDemoUnlock}
-            className="h-14 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 border border-emerald-500/30 text-emerald-300 font-bold text-xs transition-all flex flex-col items-center justify-center gap-0.5"
-            title="One-Tap Unlock"
+            onClick={handleBiometricAuth}
+            className="h-14 rounded-2xl bg-cyan-500/15 hover:bg-cyan-500/25 active:scale-95 border border-cyan-500/30 text-cyan-300 font-bold text-xs transition-all flex flex-col items-center justify-center gap-0.5"
+            title="Scan Biometrics / Fingerprint"
           >
-            <Fingerprint size={18} />
-            <span className="text-[9px]">Unlock</span>
+            <Fingerprint size={20} className={isScanningBiometrics ? 'animate-pulse text-cyan-400' : ''} />
+            <span className="text-[9px]">{isScanningBiometrics ? 'Scanning...' : 'Fingerprint'}</span>
           </button>
 
           <button
@@ -176,19 +207,75 @@ export const LoginScreen: React.FC = () => {
       </div>
 
       {/* Bottom Info Banner */}
-      <div className="pb-4 text-center space-y-2 z-10">
+      <div className="pb-4 text-center space-y-2 z-10 max-w-xs mx-auto w-full">
         <button
-          onClick={handleQuickDemoUnlock}
+          onClick={() => login('1234')}
           className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 hover:opacity-95 active:scale-[0.98] transition"
         >
           <span>Continue as Benard Cheruiyot (PIN: 1234)</span>
           <ArrowRight size={14} />
         </button>
 
-        <p className="text-[10px] text-slate-500">
-          Managing 4 Monthly Income Streams totaling <strong className="text-emerald-400 font-bold">{formatMoney(totalExpectedMonthlyIncome)}</strong>
-        </p>
+        <button
+          onClick={() => setIsAdminAuthModalOpen(true)}
+          className="text-[11px] text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1 mx-auto"
+        >
+          <KeyRound size={12} />
+          <span>Discreet Admin Authorization</span>
+        </button>
       </div>
+
+      {/* Admin PIN Prompt Modal */}
+      {isAdminAuthModalOpen && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-rose-900/60 rounded-3xl w-full max-w-sm p-5 space-y-4 shadow-2xl text-center">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/30 mx-auto flex items-center justify-center">
+              <ShieldAlert size={24} />
+            </div>
+
+            <div>
+              <h3 className="text-base font-bold text-white">Discreet Administrator Access</h3>
+              <p className="text-xs text-slate-400 mt-1">Enter your 4-digit Admin Master PIN to unlock elevated privileges</p>
+            </div>
+
+            <form onSubmit={handleAdminPinSubmit} className="space-y-3">
+              <input
+                type="password"
+                maxLength={6}
+                autoFocus
+                required
+                value={adminPinInput}
+                onChange={(e) => {
+                  setAdminPinInput(e.target.value);
+                  setAdminPinError(false);
+                }}
+                placeholder="••••"
+                className="w-full bg-slate-950 border border-slate-800 text-center tracking-[0.5em] font-mono text-xl text-white rounded-2xl py-3 focus:outline-none focus:border-rose-500"
+              />
+
+              {adminPinError && (
+                <p className="text-xs text-rose-400 font-medium">Invalid Admin Master PIN (Default: 9999)</p>
+              )}
+
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsAdminAuthModalOpen(false)}
+                  className="py-2.5 rounded-xl text-xs font-bold text-slate-400 bg-slate-800 hover:bg-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="py-2.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 shadow-md shadow-rose-950/50"
+                >
+                  Authorize Admin
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

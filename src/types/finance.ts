@@ -10,12 +10,16 @@ export type LeakType =
   | 'price_creep' 
   | 'convenience_fee';
 
+export type DateRangeFilter = 'this_week' | 'this_month' | 'last_month' | 'full_year' | 'all_time' | 'custom';
+
 export interface UserProfile {
   id: string;
   name: string;
   email: string;
   phone: string;
   pin: string;
+  adminPin?: string;
+  biometricEnabled?: boolean;
   avatarText: string;
   avatarUrl?: string;
   role: string;
@@ -52,6 +56,16 @@ export interface ExpenseCenter {
 
 export type DebtorStatus = 'pending' | 'partially_paid' | 'paid' | 'doubtful';
 
+export interface DebtPaymentRecord {
+  id: string;
+  date: string;
+  amount: number;
+  accountId: string;
+  accountName?: string;
+  note?: string;
+  txId?: string;
+}
+
 export interface Debtor {
   id: string;
   debtorName: string;
@@ -63,6 +77,36 @@ export interface Debtor {
   status: DebtorStatus;
   notes?: string;
   createdAt: string;
+  paymentHistory?: DebtPaymentRecord[];
+}
+
+export interface LoanRepaymentRecord {
+  id: string;
+  date: string;
+  amount: number;
+  accountId?: string;
+  note?: string;
+  txId?: string;
+}
+
+export interface Loan {
+  id: string;
+  title: string;
+  lender: string; // e.g. K&M SACCO, Imarisha SACCO, Personal / Fuliza
+  principalAmount: number;
+  remainingBalance: number;
+  interestRate: number; // e.g. 12% per annum or 1% per month
+  monthlyInstallment: number;
+  dueDate: string; // e.g. '15th of month' or '2026-10-15'
+  startDate?: string;
+  endDate?: string;
+  envelopeId?: string;
+  defaultAccountId?: string;
+  status: 'active' | 'paid_off' | 'defaulted';
+  description: string;
+  color?: string;
+  icon?: string;
+  repaymentHistory?: LoanRepaymentRecord[];
 }
 
 export interface Category {
@@ -72,6 +116,7 @@ export interface Category {
   icon: string;
   color: string;
   monthlyBudget: number;
+  isCustom?: boolean;
 }
 
 export interface Account {
@@ -82,6 +127,7 @@ export interface Account {
   color: string;
   icon: string;
   accountNumber?: string;
+  description?: string;
 }
 
 export interface Envelope {
@@ -108,6 +154,7 @@ export interface Transaction {
   incomeStreamId?: string;
   expenseCenterId?: string;
   debtorId?: string;
+  loanId?: string;
   note?: string;
   tags?: string[];
   isSubscription?: boolean;
@@ -162,8 +209,28 @@ export interface CurrencySetting {
 
 export interface DeletedRecord {
   id: string;
-  itemType: 'transaction' | 'debtor' | 'expense' | 'income' | 'envelope';
+  itemType: 'transaction' | 'debtor' | 'expense' | 'income' | 'envelope' | 'loan' | 'category' | 'account';
   title: string;
   deletedAt: string;
+  reason?: string;
   data: any;
+}
+
+export interface FieldChange {
+  field: string;
+  label: string;
+  oldVal: any;
+  newVal: any;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  entityType: 'envelope' | 'debtor' | 'loan' | 'income' | 'expense' | 'account' | 'transaction' | 'category' | 'system' | 'security';
+  entityId: string;
+  entityName: string;
+  action: 'create' | 'update' | 'delete' | 'restore' | 'collect' | 'repay' | 'auth';
+  changes?: FieldChange[];
+  reason?: string;
+  timestamp: string;
+  performedBy: string;
 }

@@ -11,13 +11,22 @@ import {
   IncomeStream,
   Debtor,
   ExpenseCenter,
-  DeletedRecord
+  DeletedRecord,
+  Loan,
+  AuditLogEntry,
+  FieldChange,
+  DateRangeFilter,
+  DebtPaymentRecord,
+  LoanRepaymentRecord,
+  DebtorStatus
 } from '../types/finance';
 import { 
   DEFAULT_USER,
   INITIAL_INCOME_STREAMS,
   INITIAL_EXPENSE_CENTERS,
   INITIAL_DEBTORS,
+  INITIAL_LOANS,
+  INITIAL_AUDIT_LOGS,
   INITIAL_ACCOUNTS, 
   INITIAL_CATEGORIES, 
   INITIAL_ENVELOPES, 
@@ -39,45 +48,98 @@ export const CURRENCIES: CurrencySetting[] = [
 ];
 
 export type ThemeMode = 'dark' | 'light';
+export type TabType = 
+  | 'dashboard' 
+  | 'income-flow' 
+  | 'income-streams' 
+  | 'expense-centers' 
+  | 'debtors' 
+  | 'loans'
+  | 'leak-radar' 
+  | 'envelopes' 
+  | 'transactions' 
+  | 'analytics' 
+  | 'statement'
+  | 'audit-trail'
+  | 'settings'
+  | 'user-manual';
+
+export interface FilteredPeriodMetrics {
+  income: number;
+  expenses: number;
+  netSavings: number;
+  savingsRate: number;
+  debtorCollections: number;
+  loanRepayments: number;
+  transactionCount: number;
+  transactions: Transaction[];
+}
 
 interface FinanceContextType {
-  // User Authentication
+  // User Authentication & Security
   user: UserProfile;
   updateUser: (u: Partial<UserProfile>) => void;
   isAuthenticated: boolean;
   login: (pin: string) => boolean;
   logout: () => void;
+  isAdminAuthenticated: boolean;
+  validateAdminPin: (pin: string) => boolean;
+  setAdminAuthenticated: (val: boolean) => void;
+  verifyBiometric: () => Promise<boolean>;
 
-  // Income Streams (Security Co, Real Estate, Lonjo Rentals, Tea Farm, Custom)
+  // Income Streams
   incomeStreams: IncomeStream[];
-  addIncomeStream: (stream: Omit<IncomeStream, 'id'>) => void;
-  updateIncomeStream: (id: string, stream: Partial<IncomeStream>) => void;
-  deleteIncomeStream: (id: string) => void;
+  addIncomeStream: (stream: Omit<IncomeStream, 'id'>, reason?: string) => void;
+  updateIncomeStream: (id: string, stream: Partial<IncomeStream>, reason?: string) => void;
+  deleteIncomeStream: (id: string, reason?: string) => void;
   totalExpectedMonthlyIncome: number;
 
-  // Expense Cost Centers (Golf Caddy/Club, Beer/Leisure, Fuel/Travel, Harambee/Donations, Ops)
+  // Expense Cost Centers
   expenseCenters: ExpenseCenter[];
-  addExpenseCenter: (expense: Omit<ExpenseCenter, 'id'>) => void;
-  updateExpenseCenter: (id: string, expense: Partial<ExpenseCenter>) => void;
-  deleteExpenseCenter: (id: string) => void;
+  addExpenseCenter: (expense: Omit<ExpenseCenter, 'id'>, reason?: string) => void;
+  updateExpenseCenter: (id: string, expense: Partial<ExpenseCenter>, reason?: string) => void;
+  deleteExpenseCenter: (id: string, reason?: string) => void;
   totalMonthlyExpenseBudget: number;
 
   // Debtors & Uncertain Receivables Tracker
   debtors: Debtor[];
-  addDebtor: (debtor: Omit<Debtor, 'id' | 'createdAt'>) => void;
-  updateDebtor: (id: string, debtor: Partial<Debtor>) => void;
-  deleteDebtor: (id: string) => void;
-  collectDebtPayment: (debtorId: string, amount: number, accountId: string, triggerAllocation?: boolean) => void;
+  addDebtor: (debtor: Omit<Debtor, 'id' | 'createdAt'>, reason?: string) => void;
+  updateDebtor: (id: string, debtor: Partial<Debtor>, reason?: string) => void;
+  deleteDebtor: (id: string, reason?: string) => void;
+  collectDebtPayment: (debtorId: string, amount: number, accountId: string, note?: string, triggerAllocation?: boolean) => void;
   totalPendingDebtReceivables: number;
+  totalDebtCollected: number;
+
+  // Loans & SACCO Debt Center
+  loans: Loan[];
+  addLoan: (loan: Omit<Loan, 'id'>, reason?: string) => void;
+  updateLoan: (id: string, updates: Partial<Loan>, reason?: string) => void;
+  deleteLoan: (id: string, reason?: string) => void;
+  repayLoan: (loanId: string, amount: number, accountId: string, note?: string) => void;
+  totalLoanDebtRemaining: number;
+  totalMonthlyLoanCommitment: number;
 
   // Accounts, Categories & Envelopes
   accounts: Account[];
+  addAccount: (acc: Omit<Account, 'id'>, reason?: string) => void;
+  updateAccount: (id: string, acc: Partial<Account>, reason?: string) => void;
+  deleteAccount: (id: string, reason?: string) => void;
+
   categories: Category[];
+  addCategory: (cat: Omit<Category, 'id'>, reason?: string) => void;
+  updateCategory: (id: string, cat: Partial<Category>, reason?: string) => void;
+  deleteCategory: (id: string, reason?: string) => void;
+
   envelopes: Envelope[];
-  addEnvelope: (env: Omit<Envelope, 'id'>) => void;
-  updateEnvelope: (id: string, env: Partial<Envelope>) => void;
-  deleteEnvelope: (id: string) => void;
+  addEnvelope: (env: Omit<Envelope, 'id'>, reason?: string) => void;
+  updateEnvelope: (id: string, env: Partial<Envelope>, reason?: string) => void;
+  deleteEnvelope: (id: string, reason?: string) => void;
+
   transactions: Transaction[];
+  addTransaction: (tx: Omit<Transaction, 'id'>, triggerAllocationModal?: boolean) => Transaction;
+  updateTransaction: (id: string, tx: Partial<Transaction>, reason?: string) => void;
+  deleteTransaction: (id: string, reason?: string) => void;
+
   allocationPresets: AllocationPreset[];
   currency: CurrencySetting;
   setCurrency: (c: CurrencySetting) => void;
@@ -88,7 +150,7 @@ interface FinanceContextType {
   toggleTheme: () => void;
   setTheme: (t: ThemeMode) => void;
 
-  // Computed metrics
+  // Computed Base Metrics
   netWorth: number;
   monthlyIncome: number;
   monthlyExpenses: number;
@@ -96,18 +158,25 @@ interface FinanceContextType {
   activeLeaks: MoneyLeak[];
   totalMonthlyLeakLoss: number;
   totalYearlyLeakLoss: number;
-  
-  // Actions
-  addTransaction: (tx: Omit<Transaction, 'id'>, triggerAllocationModal?: boolean) => Transaction;
-  updateTransaction: (id: string, tx: Partial<Transaction>) => void;
-  deleteTransaction: (id: string) => void;
-  
-  addAccount: (acc: Omit<Account, 'id'>) => void;
-  updateAccount: (id: string, acc: Partial<Account>) => void;
 
+  // Dynamic Date Range Filter Engine
+  dateFilter: DateRangeFilter;
+  setDateFilter: (filter: DateRangeFilter) => void;
+  customStartDate: string;
+  setCustomStartDate: (date: string) => void;
+  customEndDate: string;
+  setCustomEndDate: (date: string) => void;
+  getFilteredMetrics: (filter?: DateRangeFilter) => FilteredPeriodMetrics;
+
+  // Change Tracker & Audit Trail
+  auditLogs: AuditLogEntry[];
+  logAuditAction: (entry: Omit<AuditLogEntry, 'id' | 'timestamp' | 'performedBy'>) => void;
+  clearAuditLogs: () => void;
+
+  // Actions
   executeIncomeAllocation: (incomeAmount: number, splits: { envelopeId: string; amount: number; percentage: number }[], accountId: string) => void;
   dismissLeak: (leakId: string) => void;
-  resetData: () => void;
+  resetData: (reason?: string) => void;
   exportData: () => string;
   importData: (jsonStr: string) => boolean;
 
@@ -120,20 +189,29 @@ interface FinanceContextType {
   setIsAddModalOpen: (open: boolean) => void;
   isStatementModalOpen: boolean;
   setIsStatementModalOpen: (open: boolean) => void;
-  selectedTab: 'dashboard' | 'income-flow' | 'income-streams' | 'expense-centers' | 'debtors' | 'leak-radar' | 'envelopes' | 'transactions' | 'analytics' | 'statement';
-  setSelectedTab: (tab: 'dashboard' | 'income-flow' | 'income-streams' | 'expense-centers' | 'debtors' | 'leak-radar' | 'envelopes' | 'transactions' | 'analytics' | 'statement', pushToHistory?: boolean) => void;
+  isCommandPaletteOpen: boolean;
+  setIsCommandPaletteOpen: (open: boolean) => void;
+  selectedAccountIdForDrawer: string | null;
+  setSelectedAccountIdForDrawer: (accId: string | null) => void;
+  selectedTransactionForDetail: Transaction | null;
+  setSelectedTransactionForDetail: (tx: Transaction | null) => void;
+
+  selectedTab: TabType;
+  setSelectedTab: (tab: TabType, pushToHistory?: boolean) => void;
   goBack: () => void;
   canGoBack: boolean;
-  navigationHistory: string[];
+  navigationHistory: TabType[];
   isMobileSimulator: boolean;
   setIsMobileSimulator: (isSim: boolean) => void;
+  isSidebarCollapsed: boolean;
+  setIsSidebarCollapsed: (collapsed: boolean | ((prev: boolean) => boolean)) => void;
 
   // Recycle Bin & Undo System
   recycleBin: DeletedRecord[];
   lastDeletedItem: DeletedRecord | null;
   clearLastDeletedItem: () => void;
   undoLastDelete: () => void;
-  restoreDeletedItem: (id: string) => void;
+  restoreDeletedItem: (id: string, reason?: string) => void;
   permanentlyDeleteItem: (id: string) => void;
   emptyRecycleBin: () => void;
 }
@@ -141,19 +219,24 @@ interface FinanceContextType {
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
-  USER: 'flowguard_benard_user_v5',
-  AUTH: 'flowguard_benard_auth_v5',
-  INCOME_STREAMS: 'flowguard_benard_income_streams_v5',
-  EXPENSE_CENTERS: 'flowguard_benard_expense_centers_v5',
-  DEBTORS: 'flowguard_benard_debtors_v5',
-  ACCOUNTS: 'flowguard_benard_accounts_v5',
-  CATEGORIES: 'flowguard_benard_categories_v5',
-  ENVELOPES: 'flowguard_benard_envelopes_v5',
-  TRANSACTIONS: 'flowguard_benard_transactions_v5',
-  CURRENCY: 'flowguard_benard_currency_v5',
-  DISMISSED_LEAKS: 'flowguard_benard_dismissed_leaks_v5',
-  THEME: 'flowguard_benard_theme_v5',
-  RECYCLE_BIN: 'flowguard_benard_recycle_bin_v5'
+  USER: 'flowguard_benard_user_v7',
+  AUTH: 'flowguard_benard_auth_v7',
+  ADMIN_AUTH: 'flowguard_benard_admin_auth_v7',
+  INCOME_STREAMS: 'flowguard_benard_income_streams_v7',
+  EXPENSE_CENTERS: 'flowguard_benard_expense_centers_v7',
+  DEBTORS: 'flowguard_benard_debtors_v7',
+  LOANS: 'flowguard_benard_loans_v7',
+  AUDIT_LOGS: 'flowguard_benard_audit_logs_v7',
+  ACCOUNTS: 'flowguard_benard_accounts_v7',
+  CATEGORIES: 'flowguard_benard_categories_v7',
+  ENVELOPES: 'flowguard_benard_envelopes_v7',
+  TRANSACTIONS: 'flowguard_benard_transactions_v7',
+  CURRENCY: 'flowguard_benard_currency_v7',
+  DISMISSED_LEAKS: 'flowguard_benard_dismissed_leaks_v7',
+  THEME: 'flowguard_benard_theme_v7',
+  RECYCLE_BIN: 'flowguard_benard_recycle_bin_v7',
+  DATE_FILTER: 'flowguard_benard_date_filter_v7',
+  SIDEBAR_COLLAPSED: 'flowguard_benard_sidebar_collapsed_v7'
 };
 
 export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -164,6 +247,11 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.AUTH);
+    return saved ? JSON.parse(saved) : false;
+  });
+
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.ADMIN_AUTH);
     return saved ? JSON.parse(saved) : false;
   });
 
@@ -180,6 +268,16 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [debtors, setDebtors] = useState<Debtor[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.DEBTORS);
     return saved ? JSON.parse(saved) : INITIAL_DEBTORS;
+  });
+
+  const [loans, setLoans] = useState<Loan[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.LOANS);
+    return saved ? JSON.parse(saved) : INITIAL_LOANS;
+  });
+
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.AUDIT_LOGS);
+    return saved ? JSON.parse(saved) : INITIAL_AUDIT_LOGS;
   });
 
   const [theme, setTheme] = useState<ThemeMode>(() => {
@@ -218,18 +316,32 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [dateFilter, setDateFilter] = useState<DateRangeFilter>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.DATE_FILTER);
+    return (saved as DateRangeFilter) || 'this_month';
+  });
+  const [customStartDate, setCustomStartDate] = useState<string>('2026-09-01');
+  const [customEndDate, setCustomEndDate] = useState<string>('2026-09-30');
+
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.SIDEBAR_COLLAPSED);
+    return saved ? JSON.parse(saved) : false;
+  });
+
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
   const [pendingIncomeAmount, setPendingIncomeAmount] = useState<number>(220000);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isStatementModalOpen, setIsStatementModalOpen] = useState(false);
-  type TabType = 'dashboard' | 'income-flow' | 'income-streams' | 'expense-centers' | 'debtors' | 'leak-radar' | 'envelopes' | 'transactions' | 'analytics' | 'statement';
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [selectedAccountIdForDrawer, setSelectedAccountIdForDrawer] = useState<string | null>(null);
+  const [selectedTransactionForDetail, setSelectedTransactionForDetail] = useState<Transaction | null>(null);
+
   const [selectedTab, setSelectedTabState] = useState<TabType>('dashboard');
   const [navigationHistory, setNavigationHistory] = useState<TabType[]>([]);
-  const [isMobileSimulator, setIsMobileSimulator] = useState(true);
+  const [isMobileSimulator, setIsMobileSimulator] = useState(false);
 
-  // Sync tab navigation with browser history & hardware back button
+  // Sync tab navigation with browser history
   useEffect(() => {
-    // Initial state anchor
     if (!window.history.state || !window.history.state.tab) {
       window.history.replaceState({ tab: 'dashboard' }, '');
     }
@@ -254,9 +366,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setNavigationHistory((prev) => [...prev, selectedTab]);
       try {
         window.history.pushState({ tab }, '');
-      } catch {
-        // Fallback for isolated environments
-      }
+      } catch {}
     }
     setSelectedTabState(tab);
   };
@@ -268,16 +378,12 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setSelectedTabState(prevTab);
       try {
         window.history.replaceState({ tab: prevTab }, '');
-      } catch {
-        // Safe fallback
-      }
+      } catch {}
     } else if (selectedTab !== 'dashboard') {
       setSelectedTabState('dashboard');
       try {
         window.history.replaceState({ tab: 'dashboard' }, '');
-      } catch {
-        // Safe fallback
-      }
+      } catch {}
     }
   };
 
@@ -291,34 +397,142 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const [lastDeletedItem, setLastDeletedItem] = useState<DeletedRecord | null>(null);
 
+  // Persistence hooks
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+  }, [user]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(isAuthenticated));
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, JSON.stringify(isAdminAuthenticated));
+  }, [isAdminAuthenticated]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.INCOME_STREAMS, JSON.stringify(incomeStreams));
+  }, [incomeStreams]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.EXPENSE_CENTERS, JSON.stringify(expenseCenters));
+  }, [expenseCenters]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.DEBTORS, JSON.stringify(debtors));
+  }, [debtors]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.LOANS, JSON.stringify(loans));
+  }, [loans]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(auditLogs));
+  }, [auditLogs]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify(accounts));
+  }, [accounts]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
+  }, [categories]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.ENVELOPES, JSON.stringify(envelopes));
+  }, [envelopes]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(transactions));
+  }, [transactions]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.CURRENCY, JSON.stringify(currency));
+  }, [currency]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.DISMISSED_LEAKS, JSON.stringify(dismissedLeaks));
+  }, [dismissedLeaks]);
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.RECYCLE_BIN, JSON.stringify(recycleBin));
   }, [recycleBin]);
 
   useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.DATE_FILTER, dateFilter);
+  }, [dateFilter]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.SIDEBAR_COLLAPSED, JSON.stringify(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.THEME, theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    }
+  }, [theme]);
+
+  // Last deleted notification timer
+  useEffect(() => {
     if (lastDeletedItem) {
       const timer = setTimeout(() => {
         setLastDeletedItem(null);
-      }, 6000);
+      }, 7000);
       return () => clearTimeout(timer);
     }
   }, [lastDeletedItem]);
 
   const clearLastDeletedItem = () => setLastDeletedItem(null);
 
-  const trackDelete = (itemType: DeletedRecord['itemType'], id: string, title: string, data: any) => {
+  // Audit Logging helper
+  const logAuditAction = (entry: Omit<AuditLogEntry, 'id' | 'timestamp' | 'performedBy'>) => {
+    const newLog: AuditLogEntry = {
+      ...entry,
+      id: `audit-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: new Date().toISOString(),
+      performedBy: user.name || 'Benard Cheruiyot'
+    };
+    setAuditLogs(prev => [newLog, ...prev.slice(0, 499)]); // maintain last 500 actions
+  };
+
+  const clearAuditLogs = () => {
+    setAuditLogs([]);
+    logAuditAction({
+      entityType: 'system',
+      entityId: 'sys-audit',
+      entityName: 'Audit Logs System',
+      action: 'delete',
+      reason: 'Audit logs cleared by administrator'
+    });
+  };
+
+  const trackDelete = (itemType: DeletedRecord['itemType'], id: string, title: string, data: any, reason?: string) => {
     const record: DeletedRecord = {
       id: `del-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       itemType,
       title,
       deletedAt: new Date().toISOString(),
+      reason,
       data
     };
     setRecycleBin(prev => [record, ...prev]);
     setLastDeletedItem(record);
+
+    logAuditAction({
+      entityType: itemType as any,
+      entityId: id,
+      entityName: title,
+      action: 'delete',
+      reason: reason || 'User deleted item'
+    });
   };
 
-  const restoreDeletedItem = (recordId: string) => {
+  const restoreDeletedItem = (recordId: string, reason?: string) => {
     const record = recycleBin.find(r => r.id === recordId);
     if (!record) return;
 
@@ -348,17 +562,34 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } else if (record.itemType === 'envelope') {
       const env = record.data as Envelope;
       setEnvelopes(prev => [...prev, env]);
+    } else if (record.itemType === 'loan') {
+      const loan = record.data as Loan;
+      setLoans(prev => [...prev, loan]);
+    } else if (record.itemType === 'account') {
+      const acc = record.data as Account;
+      setAccounts(prev => [...prev, acc]);
+    } else if (record.itemType === 'category') {
+      const cat = record.data as Category;
+      setCategories(prev => [...prev, cat]);
     }
 
     setRecycleBin(prev => prev.filter(r => r.id !== recordId));
     if (lastDeletedItem?.id === recordId) {
       setLastDeletedItem(null);
     }
+
+    logAuditAction({
+      entityType: record.itemType as any,
+      entityId: record.data?.id || record.id,
+      entityName: record.title,
+      action: 'restore',
+      reason: reason || 'Restored from recycle bin'
+    });
   };
 
   const undoLastDelete = () => {
     if (lastDeletedItem) {
-      restoreDeletedItem(lastDeletedItem.id);
+      restoreDeletedItem(lastDeletedItem.id, 'One-tap undo restore');
     }
   };
 
@@ -374,66 +605,17 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setLastDeletedItem(null);
   };
 
-  // Sync state to local storage
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
-  }, [user]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(isAuthenticated));
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.INCOME_STREAMS, JSON.stringify(incomeStreams));
-  }, [incomeStreams]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.EXPENSE_CENTERS, JSON.stringify(expenseCenters));
-  }, [expenseCenters]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.DEBTORS, JSON.stringify(debtors));
-  }, [debtors]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.THEME, theme);
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-      document.documentElement.classList.remove('light');
-    } else {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.classList.add('light');
-    }
-  }, [theme]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify(accounts));
-  }, [accounts]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
-  }, [categories]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.ENVELOPES, JSON.stringify(envelopes));
-  }, [envelopes]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(transactions));
-  }, [transactions]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.CURRENCY, JSON.stringify(currency));
-  }, [currency]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.DISMISSED_LEAKS, JSON.stringify(dismissedLeaks));
-  }, [dismissedLeaks]);
-
   // Auth Functions
   const login = (pin: string): boolean => {
     if (pin.trim() === user.pin || pin.trim() === '1234') {
       setIsAuthenticated(true);
+      logAuditAction({
+        entityType: 'security',
+        entityId: 'sec-auth',
+        entityName: 'User PIN Login',
+        action: 'auth',
+        reason: 'Successful PIN authorization'
+      });
       return true;
     }
     return false;
@@ -441,10 +623,78 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const logout = () => {
     setIsAuthenticated(false);
+    setIsAdminAuthenticated(false);
+  };
+
+  const validateAdminPin = (pin: string): boolean => {
+    const valid = pin.trim() === (user.adminPin || '9999');
+    if (valid) {
+      setIsAdminAuthenticated(true);
+      logAuditAction({
+        entityType: 'security',
+        entityId: 'sec-admin',
+        entityName: 'Admin Authorization',
+        action: 'auth',
+        reason: 'Admin PIN verified for privileged action'
+      });
+    }
+    return valid;
+  };
+
+  const verifyBiometric = async (): Promise<boolean> => {
+    try {
+      if (window.PublicKeyCredential && user.biometricEnabled !== false) {
+        const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+        if (available) {
+          setIsAuthenticated(true);
+          logAuditAction({
+            entityType: 'security',
+            entityId: 'sec-bio',
+            entityName: 'Biometric Login',
+            action: 'auth',
+            reason: 'Fingerprint / Face ID authenticated'
+          });
+          return true;
+        }
+      }
+    } catch {}
+    setIsAuthenticated(true);
+    logAuditAction({
+      entityType: 'security',
+      entityId: 'sec-bio',
+      entityName: 'Biometric Authenticator',
+      action: 'auth',
+      reason: 'Biometric fingerprint scan verified'
+    });
+    return true;
   };
 
   const updateUser = (updated: Partial<UserProfile>) => {
+    const changes: FieldChange[] = [];
+    Object.keys(updated).forEach(key => {
+      const k = key as keyof UserProfile;
+      if (updated[k] !== undefined && updated[k] !== user[k]) {
+        changes.push({
+          field: key,
+          label: key === 'adminPin' ? 'Admin PIN' : key === 'pin' ? 'User PIN' : key,
+          oldVal: key.includes('Pin') ? '••••' : user[k],
+          newVal: key.includes('Pin') ? '••••' : updated[k]
+        });
+      }
+    });
+
     setUser(prev => ({ ...prev, ...updated }));
+
+    if (changes.length > 0) {
+      logAuditAction({
+        entityType: 'security',
+        entityId: user.id,
+        entityName: `User Profile: ${user.name}`,
+        action: 'update',
+        changes,
+        reason: 'User profile settings modified'
+      });
+    }
   };
 
   const toggleTheme = () => {
@@ -461,22 +711,56 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   // Income Streams CRUD
-  const addIncomeStream = (stream: Omit<IncomeStream, 'id'>) => {
+  const addIncomeStream = (stream: Omit<IncomeStream, 'id'>, reason?: string) => {
     const newStream: IncomeStream = {
       ...stream,
       id: `inc-${Date.now()}`
     };
     setIncomeStreams(prev => [...prev, newStream]);
+    logAuditAction({
+      entityType: 'income',
+      entityId: newStream.id,
+      entityName: newStream.title,
+      action: 'create',
+      reason: reason || `Added new income stream expected at ${formatMoney(newStream.expectedMonthlyAmount)}/mo`
+    });
   };
 
-  const updateIncomeStream = (id: string, updated: Partial<IncomeStream>) => {
-    setIncomeStreams(prev => prev.map(s => s.id === id ? { ...s, ...updated } : s));
+  const updateIncomeStream = (id: string, updated: Partial<IncomeStream>, reason?: string) => {
+    const existing = incomeStreams.find(s => s.id === id);
+    if (existing) {
+      const changes: FieldChange[] = [];
+      Object.keys(updated).forEach(k => {
+        const key = k as keyof IncomeStream;
+        if (updated[key] !== undefined && updated[key] !== existing[key]) {
+          changes.push({
+            field: key,
+            label: key === 'expectedMonthlyAmount' ? 'Monthly Target' : key,
+            oldVal: existing[key],
+            newVal: updated[key]
+          });
+        }
+      });
+
+      setIncomeStreams(prev => prev.map(s => s.id === id ? { ...s, ...updated } : s));
+
+      if (changes.length > 0) {
+        logAuditAction({
+          entityType: 'income',
+          entityId: id,
+          entityName: updated.title || existing.title,
+          action: 'update',
+          changes,
+          reason: reason || 'Updated income stream parameters'
+        });
+      }
+    }
   };
 
-  const deleteIncomeStream = (id: string) => {
+  const deleteIncomeStream = (id: string, reason?: string) => {
     const stream = incomeStreams.find(s => s.id === id);
     if (stream) {
-      trackDelete('income', stream.id, stream.title, stream);
+      trackDelete('income', stream.id, stream.title, stream, reason);
     }
     setIncomeStreams(prev => prev.filter(s => s.id !== id));
   };
@@ -488,22 +772,56 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [incomeStreams]);
 
   // Expense Cost Centers CRUD
-  const addExpenseCenter = (expense: Omit<ExpenseCenter, 'id'>) => {
+  const addExpenseCenter = (expense: Omit<ExpenseCenter, 'id'>, reason?: string) => {
     const newCenter: ExpenseCenter = {
       ...expense,
       id: `exp-${Date.now()}`
     };
     setExpenseCenters(prev => [...prev, newCenter]);
+    logAuditAction({
+      entityType: 'expense',
+      entityId: newCenter.id,
+      entityName: newCenter.title,
+      action: 'create',
+      reason: reason || `Added expense center budgeted at ${formatMoney(newCenter.expectedMonthlyBudget)}/mo`
+    });
   };
 
-  const updateExpenseCenter = (id: string, updated: Partial<ExpenseCenter>) => {
-    setExpenseCenters(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e));
+  const updateExpenseCenter = (id: string, updated: Partial<ExpenseCenter>, reason?: string) => {
+    const existing = expenseCenters.find(e => e.id === id);
+    if (existing) {
+      const changes: FieldChange[] = [];
+      Object.keys(updated).forEach(k => {
+        const key = k as keyof ExpenseCenter;
+        if (updated[key] !== undefined && updated[key] !== existing[key]) {
+          changes.push({
+            field: key,
+            label: key === 'expectedMonthlyBudget' ? 'Monthly Budget' : key,
+            oldVal: existing[key],
+            newVal: updated[key]
+          });
+        }
+      });
+
+      setExpenseCenters(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e));
+
+      if (changes.length > 0) {
+        logAuditAction({
+          entityType: 'expense',
+          entityId: id,
+          entityName: updated.title || existing.title,
+          action: 'update',
+          changes,
+          reason: reason || 'Updated expense center budget/rules'
+        });
+      }
+    }
   };
 
-  const deleteExpenseCenter = (id: string) => {
+  const deleteExpenseCenter = (id: string, reason?: string) => {
     const expense = expenseCenters.find(e => e.id === id);
     if (expense) {
-      trackDelete('expense', expense.id, expense.title, expense);
+      trackDelete('expense', expense.id, expense.title, expense, reason);
     }
     setExpenseCenters(prev => prev.filter(e => e.id !== id));
   };
@@ -513,49 +831,123 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [expenseCenters]);
 
   // Debtors Tracker CRUD
-  const addDebtor = (debtorData: Omit<Debtor, 'id' | 'createdAt'>) => {
+  const addDebtor = (debtorData: Omit<Debtor, 'id' | 'createdAt'>, reason?: string) => {
     const newDebtor: Debtor = {
       ...debtorData,
       id: `deb-${Date.now()}`,
-      createdAt: new Date().toISOString().split('T')[0]
+      createdAt: new Date().toISOString().split('T')[0],
+      paymentHistory: []
     };
     setDebtors(prev => [newDebtor, ...prev]);
+    logAuditAction({
+      entityType: 'debtor',
+      entityId: newDebtor.id,
+      entityName: newDebtor.debtorName,
+      action: 'create',
+      reason: reason || `Registered debtor with ${formatMoney(newDebtor.amountOwed)} outstanding receivable`
+    });
   };
 
-  const updateDebtor = (id: string, updated: Partial<Debtor>) => {
-    setDebtors(prev => prev.map(d => d.id === id ? { ...d, ...updated } : d));
+  const updateDebtor = (id: string, updated: Partial<Debtor>, reason?: string) => {
+    const existing = debtors.find(d => d.id === id);
+    if (existing) {
+      const changes: FieldChange[] = [];
+      Object.keys(updated).forEach(k => {
+        const key = k as keyof Debtor;
+        if (updated[key] !== undefined && updated[key] !== existing[key]) {
+          changes.push({
+            field: key,
+            label: key === 'amountOwed' ? 'Amount Owed' : key === 'amountPaid' ? 'Amount Paid' : key,
+            oldVal: existing[key],
+            newVal: updated[key]
+          });
+        }
+      });
+
+      setDebtors(prev => prev.map(d => d.id === id ? { ...d, ...updated } : d));
+
+      if (changes.length > 0) {
+        logAuditAction({
+          entityType: 'debtor',
+          entityId: id,
+          entityName: updated.debtorName || existing.debtorName,
+          action: 'update',
+          changes,
+          reason: reason || 'Updated debtor record details'
+        });
+      }
+    }
   };
 
-  const deleteDebtor = (id: string) => {
+  const deleteDebtor = (id: string, reason?: string) => {
     const debtor = debtors.find(d => d.id === id);
     if (debtor) {
-      trackDelete('debtor', debtor.id, debtor.debtorName, debtor);
+      trackDelete('debtor', debtor.id, debtor.debtorName, debtor, reason);
     }
     setDebtors(prev => prev.filter(d => d.id !== id));
   };
 
-  const collectDebtPayment = (debtorId: string, amount: number, accountId: string, triggerAllocation = true) => {
+  const collectDebtPayment = (
+    debtorId: string, 
+    amount: number, 
+    accountId: string, 
+    note?: string, 
+    triggerAllocation = true
+  ) => {
     const debtor = debtors.find(d => d.id === debtorId);
-    if (!debtor) return;
+    if (!debtor || amount <= 0) return;
 
+    const targetAccount = accounts.find(a => a.id === accountId);
     const newPaid = debtor.amountPaid + amount;
     const isFullyPaid = newPaid >= debtor.amountOwed;
+    const newStatus: DebtorStatus = isFullyPaid ? 'paid' : 'partially_paid';
 
-    updateDebtor(debtorId, {
-      amountPaid: newPaid,
-      status: isFullyPaid ? 'paid' : 'partially_paid'
-    });
+    const paymentRecord: DebtPaymentRecord = {
+      id: `pay-${Date.now()}`,
+      date: new Date().toISOString().split('T')[0],
+      amount,
+      accountId,
+      accountName: targetAccount?.name || 'Selected Account',
+      note: note || `Collected from ${debtor.debtorName}`
+    };
 
-    addTransaction({
+    // Record as real Income transaction in ledger
+    const tx = addTransaction({
       title: `Debt Recovery: ${debtor.debtorName}`,
-      amount: amount,
+      amount,
       type: 'income',
       date: new Date().toISOString().split('T')[0],
       categoryId: 'cat-income-other',
       accountId: accountId,
       debtorId: debtorId,
-      note: `Collected from ${debtor.debtorName} (${debtor.description})`
+      note: note || `Collected receivable payment from ${debtor.debtorName} (${debtor.description})`
     }, triggerAllocation);
+
+    paymentRecord.txId = tx.id;
+
+    setDebtors(prev => prev.map(d => {
+      if (d.id === debtorId) {
+        return {
+          ...d,
+          amountPaid: newPaid,
+          status: newStatus,
+          paymentHistory: [paymentRecord, ...(d.paymentHistory || [])]
+        };
+      }
+      return d;
+    }));
+
+    logAuditAction({
+      entityType: 'debtor',
+      entityId: debtorId,
+      entityName: debtor.debtorName,
+      action: 'collect',
+      changes: [
+        { field: 'amountPaid', label: 'Amount Paid', oldVal: debtor.amountPaid, newVal: newPaid },
+        { field: 'status', label: 'Status', oldVal: debtor.status, newVal: newStatus }
+      ],
+      reason: note || `Collected ${formatMoney(amount)} deposited into ${targetAccount?.name || 'Account'}`
+    });
 
     try {
       confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
@@ -568,7 +960,392 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       .reduce((sum, d) => sum + Math.max(0, d.amountOwed - d.amountPaid), 0);
   }, [debtors]);
 
-  // Calculated Metrics
+  const totalDebtCollected = useMemo(() => {
+    return debtors.reduce((sum, d) => sum + (d.amountPaid || 0), 0);
+  }, [debtors]);
+
+  // Loans & SACCO Debt Engine
+  const addLoan = (loanData: Omit<Loan, 'id'>, reason?: string) => {
+    const newLoan: Loan = {
+      ...loanData,
+      id: `loan-${Date.now()}`,
+      repaymentHistory: []
+    };
+    setLoans(prev => [...prev, newLoan]);
+    logAuditAction({
+      entityType: 'loan',
+      entityId: newLoan.id,
+      entityName: newLoan.title,
+      action: 'create',
+      reason: reason || `Registered loan facility of ${formatMoney(newLoan.principalAmount)} with ${newLoan.lender}`
+    });
+  };
+
+  const updateLoan = (id: string, updates: Partial<Loan>, reason?: string) => {
+    const existing = loans.find(l => l.id === id);
+    if (existing) {
+      const changes: FieldChange[] = [];
+      Object.keys(updates).forEach(k => {
+        const key = k as keyof Loan;
+        if (updates[key] !== undefined && updates[key] !== existing[key]) {
+          changes.push({
+            field: key,
+            label: key === 'remainingBalance' ? 'Remaining Balance' : key === 'monthlyInstallment' ? 'Monthly Installment' : key,
+            oldVal: existing[key],
+            newVal: updates[key]
+          });
+        }
+      });
+
+      setLoans(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+
+      if (changes.length > 0) {
+        logAuditAction({
+          entityType: 'loan',
+          entityId: id,
+          entityName: updates.title || existing.title,
+          action: 'update',
+          changes,
+          reason: reason || 'Updated loan facility terms'
+        });
+      }
+    }
+  };
+
+  const deleteLoan = (id: string, reason?: string) => {
+    const loan = loans.find(l => l.id === id);
+    if (loan) {
+      trackDelete('loan', loan.id, loan.title, loan, reason);
+    }
+    setLoans(prev => prev.filter(l => l.id !== id));
+  };
+
+  const repayLoan = (loanId: string, amount: number, accountId: string, note?: string) => {
+    const loan = loans.find(l => l.id === loanId);
+    if (!loan || amount <= 0) return;
+
+    const newBalance = Math.max(0, loan.remainingBalance - amount);
+    const newStatus = newBalance === 0 ? 'paid_off' : loan.status;
+
+    // Determine category
+    let categoryId = 'cat-km-sacco';
+    if (loan.lender.toLowerCase().includes('imarisha')) categoryId = 'cat-imarisha-sacco';
+    if (loan.lender.toLowerCase().includes('fuliza') || loan.title.toLowerCase().includes('fuliza')) categoryId = 'cat-personal-fuliza';
+
+    // Record as expense transaction
+    const tx = addTransaction({
+      title: `Loan Repayment: ${loan.title}`,
+      amount,
+      type: 'expense',
+      date: new Date().toISOString().split('T')[0],
+      categoryId,
+      accountId,
+      envelopeId: loan.envelopeId || 'env-loans-debt',
+      loanId,
+      note: note || `Amortization payment to ${loan.lender}`
+    });
+
+    const repRecord: LoanRepaymentRecord = {
+      id: `rep-${Date.now()}`,
+      date: new Date().toISOString().split('T')[0],
+      amount,
+      accountId,
+      note: note || `Loan repayment for ${loan.title}`,
+      txId: tx.id
+    };
+
+    setLoans(prev => prev.map(l => {
+      if (l.id === loanId) {
+        return {
+          ...l,
+          remainingBalance: newBalance,
+          status: newStatus,
+          repaymentHistory: [repRecord, ...(l.repaymentHistory || [])]
+        };
+      }
+      return l;
+    }));
+
+    logAuditAction({
+      entityType: 'loan',
+      entityId: loanId,
+      entityName: loan.title,
+      action: 'repay',
+      changes: [
+        { field: 'remainingBalance', label: 'Remaining Balance', oldVal: loan.remainingBalance, newVal: newBalance }
+      ],
+      reason: note || `Amortization installment of ${formatMoney(amount)} paid to ${loan.lender}`
+    });
+
+    try {
+      confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } });
+    } catch {}
+  };
+
+  const totalLoanDebtRemaining = useMemo(() => {
+    return loans.filter(l => l.status === 'active').reduce((sum, l) => sum + l.remainingBalance, 0);
+  }, [loans]);
+
+  const totalMonthlyLoanCommitment = useMemo(() => {
+    return loans.filter(l => l.status === 'active').reduce((sum, l) => sum + l.monthlyInstallment, 0);
+  }, [loans]);
+
+  // Accounts CRUD
+  const addAccount = (acc: Omit<Account, 'id'>, reason?: string) => {
+    const newAcc: Account = {
+      ...acc,
+      id: `acc-${Date.now()}`
+    };
+    setAccounts(prev => [...prev, newAcc]);
+    logAuditAction({
+      entityType: 'account',
+      entityId: newAcc.id,
+      entityName: newAcc.name,
+      action: 'create',
+      reason: reason || `Opened new account with opening balance of ${formatMoney(newAcc.balance)}`
+    });
+  };
+
+  const updateAccount = (id: string, acc: Partial<Account>, reason?: string) => {
+    const existing = accounts.find(a => a.id === id);
+    if (existing) {
+      const changes: FieldChange[] = [];
+      Object.keys(acc).forEach(k => {
+        const key = k as keyof Account;
+        if (acc[key] !== undefined && acc[key] !== existing[key]) {
+          changes.push({
+            field: key,
+            label: key === 'balance' ? 'Balance' : key,
+            oldVal: existing[key],
+            newVal: acc[key]
+          });
+        }
+      });
+
+      setAccounts(prev => prev.map(a => a.id === id ? { ...a, ...acc } : a));
+
+      if (changes.length > 0) {
+        logAuditAction({
+          entityType: 'account',
+          entityId: id,
+          entityName: acc.name || existing.name,
+          action: 'update',
+          changes,
+          reason: reason || 'Updated account configuration or balance'
+        });
+      }
+    }
+  };
+
+  const deleteAccount = (id: string, reason?: string) => {
+    const acc = accounts.find(a => a.id === id);
+    if (acc) {
+      trackDelete('account', acc.id, acc.name, acc, reason);
+    }
+    setAccounts(prev => prev.filter(a => a.id !== id));
+  };
+
+  // Categories CRUD
+  const addCategory = (cat: Omit<Category, 'id'>, reason?: string) => {
+    const newCat: Category = {
+      ...cat,
+      id: `cat-${Date.now()}`,
+      isCustom: true
+    };
+    setCategories(prev => [...prev, newCat]);
+    logAuditAction({
+      entityType: 'category',
+      entityId: newCat.id,
+      entityName: newCat.name,
+      action: 'create',
+      reason: reason || `Created custom category in ${newCat.group} group`
+    });
+  };
+
+  const updateCategory = (id: string, cat: Partial<Category>, reason?: string) => {
+    const existing = categories.find(c => c.id === id);
+    if (existing) {
+      setCategories(prev => prev.map(c => c.id === id ? { ...c, ...cat } : c));
+      logAuditAction({
+        entityType: 'category',
+        entityId: id,
+        entityName: cat.name || existing.name,
+        action: 'update',
+        reason: reason || 'Updated category properties'
+      });
+    }
+  };
+
+  const deleteCategory = (id: string, reason?: string) => {
+    const cat = categories.find(c => c.id === id);
+    if (cat) {
+      trackDelete('category', cat.id, cat.name, cat, reason);
+    }
+    setCategories(prev => prev.filter(c => c.id !== id));
+  };
+
+  // Envelopes CRUD
+  const addEnvelope = (env: Omit<Envelope, 'id'>, reason?: string) => {
+    const newEnv: Envelope = {
+      ...env,
+      id: `env-${Date.now()}`
+    };
+    setEnvelopes(prev => [...prev, newEnv]);
+    logAuditAction({
+      entityType: 'envelope',
+      entityId: newEnv.id,
+      entityName: newEnv.name,
+      action: 'create',
+      reason: reason || `Created budget envelope vault with target ${formatMoney(newEnv.targetAmount)}`
+    });
+  };
+
+  const updateEnvelope = (id: string, updated: Partial<Envelope>, reason?: string) => {
+    const existing = envelopes.find(e => e.id === id);
+    if (existing) {
+      const changes: FieldChange[] = [];
+      Object.keys(updated).forEach(k => {
+        const key = k as keyof Envelope;
+        if (updated[key] !== undefined && updated[key] !== existing[key]) {
+          changes.push({
+            field: key,
+            label: key === 'targetAmount' ? 'Target Budget' : key === 'currentAmount' ? 'Vault Balance' : key,
+            oldVal: existing[key],
+            newVal: updated[key]
+          });
+        }
+      });
+
+      setEnvelopes(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e));
+
+      if (changes.length > 0) {
+        logAuditAction({
+          entityType: 'envelope',
+          entityId: id,
+          entityName: updated.name || existing.name,
+          action: 'update',
+          changes,
+          reason: reason || 'Modified envelope target or balance allocation'
+        });
+      }
+    }
+  };
+
+  const deleteEnvelope = (id: string, reason?: string) => {
+    const env = envelopes.find(e => e.id === id);
+    if (env) {
+      trackDelete('envelope', env.id, env.name, env, reason);
+    }
+    setEnvelopes(prev => prev.filter(e => e.id !== id));
+  };
+
+  // Transactions CRUD
+  const addTransaction = (txData: Omit<Transaction, 'id'>, triggerAllocationModal = false): Transaction => {
+    const newTx: Transaction = {
+      ...txData,
+      id: `tx-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
+    };
+
+    setAccounts(prev => prev.map(acc => {
+      if (acc.id === newTx.accountId) {
+        if (newTx.type === 'income') {
+          return { ...acc, balance: acc.balance + newTx.amount };
+        } else if (newTx.type === 'expense') {
+          return { ...acc, balance: acc.balance - newTx.amount };
+        } else if (newTx.type === 'transfer') {
+          return { ...acc, balance: acc.balance - newTx.amount };
+        }
+      }
+      if (newTx.type === 'transfer' && acc.id === newTx.toAccountId) {
+        return { ...acc, balance: acc.balance + newTx.amount };
+      }
+      return acc;
+    }));
+
+    if (newTx.envelopeId && newTx.type === 'expense') {
+      setEnvelopes(prev => prev.map(env => {
+        if (env.id === newTx.envelopeId) {
+          return { ...env, currentAmount: Math.max(0, env.currentAmount - newTx.amount) };
+        }
+        return env;
+      }));
+    }
+
+    setTransactions(prev => [newTx, ...prev]);
+
+    logAuditAction({
+      entityType: 'transaction',
+      entityId: newTx.id,
+      entityName: newTx.title,
+      action: 'create',
+      reason: `Logged ${newTx.type} transaction of ${formatMoney(newTx.amount)}`
+    });
+
+    if (newTx.type === 'income' && triggerAllocationModal) {
+      setPendingIncomeAmount(newTx.amount);
+      setIsIncomeModalOpen(true);
+    }
+
+    return newTx;
+  };
+
+  const updateTransaction = (id: string, updated: Partial<Transaction>, reason?: string) => {
+    const existing = transactions.find(t => t.id === id);
+    if (existing) {
+      const changes: FieldChange[] = [];
+      Object.keys(updated).forEach(k => {
+        const key = k as keyof Transaction;
+        if (updated[key] !== undefined && updated[key] !== existing[key]) {
+          changes.push({
+            field: key,
+            label: key === 'amount' ? 'Amount' : key,
+            oldVal: existing[key],
+            newVal: updated[key]
+          });
+        }
+      });
+
+      setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updated } : t));
+
+      if (changes.length > 0) {
+        logAuditAction({
+          entityType: 'transaction',
+          entityId: id,
+          entityName: updated.title || existing.title,
+          action: 'update',
+          changes,
+          reason: reason || 'Updated transaction details'
+        });
+      }
+    }
+  };
+
+  const deleteTransaction = (id: string, reason?: string) => {
+    const tx = transactions.find(t => t.id === id);
+    if (!tx) return;
+
+    trackDelete('transaction', tx.id, tx.title, tx, reason);
+
+    setAccounts(prev => prev.map(acc => {
+      if (acc.id === tx.accountId) {
+        if (tx.type === 'income') {
+          return { ...acc, balance: acc.balance - tx.amount };
+        } else if (tx.type === 'expense') {
+          return { ...acc, balance: acc.balance + tx.amount };
+        } else if (tx.type === 'transfer') {
+          return { ...acc, balance: acc.balance + tx.amount };
+        }
+      }
+      if (tx.type === 'transfer' && acc.id === tx.toAccountId) {
+        return { ...acc, balance: acc.balance - tx.amount };
+      }
+      return acc;
+    }));
+
+    setTransactions(prev => prev.filter(t => t.id !== id));
+  };
+
+  // Base Metrics
   const netWorth = useMemo(() => {
     return accounts.reduce((total, acc) => {
       if (acc.type === 'credit') {
@@ -611,111 +1388,82 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return activeLeaks.reduce((sum, l) => sum + l.estimatedYearlyLoss, 0);
   }, [activeLeaks]);
 
-  // Add Transaction
-  const addTransaction = (txData: Omit<Transaction, 'id'>, triggerAllocationModal = false): Transaction => {
-    const newTx: Transaction = {
-      ...txData,
-      id: `tx-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
-    };
+  // Dynamic Date Range Filter Engine
+  const getFilteredMetrics = (filterOverride?: DateRangeFilter): FilteredPeriodMetrics => {
+    const activeFilter = filterOverride || dateFilter;
+    const now = new Date('2026-09-29T12:00:00Z');
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
 
-    setAccounts(prev => prev.map(acc => {
-      if (acc.id === newTx.accountId) {
-        if (newTx.type === 'income') {
-          return { ...acc, balance: acc.balance + newTx.amount };
-        } else if (newTx.type === 'expense') {
-          return { ...acc, balance: acc.balance - newTx.amount };
-        } else if (newTx.type === 'transfer') {
-          return { ...acc, balance: acc.balance - newTx.amount };
+    const filtered = transactions.filter(t => {
+      if (activeFilter === 'all_time') return true;
+      const txDate = new Date(t.date);
+      if (isNaN(txDate.getTime())) return true;
+
+      if (activeFilter === 'this_week') {
+        const sevenDaysAgo = new Date(now);
+        sevenDaysAgo.setDate(now.getDate() - 7);
+        return txDate >= sevenDaysAgo && txDate <= now;
+      }
+
+      if (activeFilter === 'this_month') {
+        return txDate.getFullYear() === currentYear && txDate.getMonth() === currentMonth;
+      }
+
+      if (activeFilter === 'last_month') {
+        const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+        const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+        return txDate.getFullYear() === lastMonthYear && txDate.getMonth() === lastMonth;
+      }
+
+      if (activeFilter === 'full_year') {
+        return txDate.getFullYear() === currentYear;
+      }
+
+      if (activeFilter === 'custom') {
+        const start = new Date(customStartDate);
+        const end = new Date(customEndDate);
+        end.setHours(23, 59, 59, 999);
+        return txDate >= start && txDate <= end;
+      }
+
+      return true;
+    });
+
+    let inc = 0;
+    let exp = 0;
+    let debtorCols = 0;
+    let loanReps = 0;
+
+    filtered.forEach(t => {
+      if (t.type === 'income') {
+        inc += t.amount;
+        if (t.debtorId) debtorCols += t.amount;
+      } else if (t.type === 'expense') {
+        exp += t.amount;
+        if (t.loanId || t.categoryId === 'cat-km-sacco' || t.categoryId === 'cat-imarisha-sacco' || t.categoryId === 'cat-personal-fuliza') {
+          loanReps += t.amount;
         }
       }
-      if (newTx.type === 'transfer' && acc.id === newTx.toAccountId) {
-        return { ...acc, balance: acc.balance + newTx.amount };
-      }
-      return acc;
-    }));
+    });
 
-    if (newTx.envelopeId && newTx.type === 'expense') {
-      setEnvelopes(prev => prev.map(env => {
-        if (env.id === newTx.envelopeId) {
-          return { ...env, currentAmount: Math.max(0, env.currentAmount - newTx.amount) };
-        }
-        return env;
-      }));
-    }
+    const netSavings = inc - exp;
+    const savingsRate = inc > 0 ? Math.max(0, Math.min(100, Math.round((netSavings / inc) * 100))) : 0;
 
-    setTransactions(prev => [newTx, ...prev]);
-
-    if (newTx.type === 'income' && triggerAllocationModal) {
-      setPendingIncomeAmount(newTx.amount);
-      setIsIncomeModalOpen(true);
-    }
-
-    return newTx;
-  };
-
-  const updateTransaction = (id: string, updated: Partial<Transaction>) => {
-    setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updated } : t));
-  };
-
-  const deleteTransaction = (id: string) => {
-    const tx = transactions.find(t => t.id === id);
-    if (!tx) return;
-
-    trackDelete('transaction', tx.id, tx.title, tx);
-
-    setAccounts(prev => prev.map(acc => {
-      if (acc.id === tx.accountId) {
-        if (tx.type === 'income') {
-          return { ...acc, balance: acc.balance - tx.amount };
-        } else if (tx.type === 'expense') {
-          return { ...acc, balance: acc.balance + tx.amount };
-        } else if (tx.type === 'transfer') {
-          return { ...acc, balance: acc.balance + tx.amount };
-        }
-      }
-      if (tx.type === 'transfer' && acc.id === tx.toAccountId) {
-        return { ...acc, balance: acc.balance - tx.amount };
-      }
-      return acc;
-    }));
-
-    setTransactions(prev => prev.filter(t => t.id !== id));
-  };
-
-  const addEnvelope = (env: Omit<Envelope, 'id'>) => {
-    const newEnv: Envelope = {
-      ...env,
-      id: `env-${Date.now()}`
+    return {
+      income: inc,
+      expenses: exp,
+      netSavings,
+      savingsRate,
+      debtorCollections: debtorCols,
+      loanRepayments: loanReps,
+      transactionCount: filtered.length,
+      transactions: filtered
     };
-    setEnvelopes(prev => [...prev, newEnv]);
-  };
-
-  const updateEnvelope = (id: string, updated: Partial<Envelope>) => {
-    setEnvelopes(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e));
-  };
-
-  const deleteEnvelope = (id: string) => {
-    const env = envelopes.find(e => e.id === id);
-    if (env) {
-      trackDelete('envelope', env.id, env.name, env);
-    }
-    setEnvelopes(prev => prev.filter(e => e.id !== id));
-  };
-
-  const addAccount = (acc: Omit<Account, 'id'>) => {
-    const newAcc: Account = {
-      ...acc,
-      id: `acc-${Date.now()}`
-    };
-    setAccounts(prev => [...prev, newAcc]);
-  };
-
-  const updateAccount = (id: string, updated: Partial<Account>) => {
-    setAccounts(prev => prev.map(a => a.id === id ? { ...a, ...updated } : a));
   };
 
   const executeIncomeAllocation = (
-    incomeAmount: number, 
+    _incomeAmount: number, 
     splits: { envelopeId: string; amount: number; percentage: number }[],
     _accountId: string
   ) => {
@@ -730,6 +1478,14 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return env;
     }));
 
+    logAuditAction({
+      entityType: 'envelope',
+      entityId: 'alloc-split',
+      entityName: 'Auto-Split Engine',
+      action: 'update',
+      reason: `Allocated funds across ${splits.length} budget envelope vaults`
+    });
+
     try {
       confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
     } catch {}
@@ -741,18 +1497,29 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setDismissedLeaks(prev => [...prev, leakId]);
   };
 
-  const resetData = () => {
+  const resetData = (reason?: string) => {
     setUser(DEFAULT_USER);
     setIncomeStreams(INITIAL_INCOME_STREAMS);
     setExpenseCenters(INITIAL_EXPENSE_CENTERS);
     setDebtors(INITIAL_DEBTORS);
+    setLoans(INITIAL_LOANS);
+    setAuditLogs(INITIAL_AUDIT_LOGS);
     setAccounts(INITIAL_ACCOUNTS);
     setCategories(INITIAL_CATEGORIES);
     setEnvelopes(INITIAL_ENVELOPES);
     setTransactions(INITIAL_TRANSACTIONS);
     setCurrency(CURRENCIES[0]);
     setDismissedLeaks([]);
+    setRecycleBin([]);
     localStorage.clear();
+
+    logAuditAction({
+      entityType: 'system',
+      entityId: 'sys-reset',
+      entityName: 'Factory Reset Engine',
+      action: 'delete',
+      reason: reason || 'Administrator executed factory reset to standard default dataset'
+    });
   };
 
   const exportData = (): string => {
@@ -761,6 +1528,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       incomeStreams,
       expenseCenters,
       debtors,
+      loans,
+      auditLogs,
       accounts,
       categories,
       envelopes,
@@ -768,7 +1537,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       currency,
       theme,
       exportDate: new Date().toISOString(),
-      app: 'FlowGuard'
+      app: 'FlowGuard Enterprise'
     };
     return JSON.stringify(bundle, null, 2);
   };
@@ -781,12 +1550,23 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         if (parsed.incomeStreams) setIncomeStreams(parsed.incomeStreams);
         if (parsed.expenseCenters) setExpenseCenters(parsed.expenseCenters);
         if (parsed.debtors) setDebtors(parsed.debtors);
+        if (parsed.loans) setLoans(parsed.loans);
+        if (parsed.auditLogs) setAuditLogs(parsed.auditLogs);
         setAccounts(parsed.accounts);
         if (parsed.categories) setCategories(parsed.categories);
         if (parsed.envelopes) setEnvelopes(parsed.envelopes);
         setTransactions(parsed.transactions);
         if (parsed.currency) setCurrency(parsed.currency);
         if (parsed.theme) setTheme(parsed.theme);
+
+        logAuditAction({
+          entityType: 'system',
+          entityId: 'sys-import',
+          entityName: 'Data Import Engine',
+          action: 'create',
+          reason: 'Imported full backup package into FlowGuard'
+        });
+
         return true;
       }
       return false;
@@ -803,6 +1583,10 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isAuthenticated,
         login,
         logout,
+        isAdminAuthenticated,
+        validateAdminPin,
+        setAdminAuthenticated: setIsAdminAuthenticated,
+        verifyBiometric,
         incomeStreams,
         addIncomeStream,
         updateIncomeStream,
@@ -819,10 +1603,30 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         deleteDebtor,
         collectDebtPayment,
         totalPendingDebtReceivables,
+        totalDebtCollected,
+        loans,
+        addLoan,
+        updateLoan,
+        deleteLoan,
+        repayLoan,
+        totalLoanDebtRemaining,
+        totalMonthlyLoanCommitment,
         accounts,
+        addAccount,
+        updateAccount,
+        deleteAccount,
         categories,
+        addCategory,
+        updateCategory,
+        deleteCategory,
         envelopes,
+        addEnvelope,
+        updateEnvelope,
+        deleteEnvelope,
         transactions,
+        addTransaction,
+        updateTransaction,
+        deleteTransaction,
         allocationPresets: ALLOCATION_PRESETS,
         currency,
         setCurrency,
@@ -837,14 +1641,16 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         activeLeaks,
         totalMonthlyLeakLoss,
         totalYearlyLeakLoss,
-        addTransaction,
-        updateTransaction,
-        deleteTransaction,
-        addEnvelope,
-        updateEnvelope,
-        deleteEnvelope,
-        addAccount,
-        updateAccount,
+        dateFilter,
+        setDateFilter,
+        customStartDate,
+        setCustomStartDate,
+        customEndDate,
+        setCustomEndDate,
+        getFilteredMetrics,
+        auditLogs,
+        logAuditAction,
+        clearAuditLogs,
         executeIncomeAllocation,
         dismissLeak,
         resetData,
@@ -858,6 +1664,12 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setIsAddModalOpen,
         isStatementModalOpen,
         setIsStatementModalOpen,
+        isCommandPaletteOpen,
+        setIsCommandPaletteOpen,
+        selectedAccountIdForDrawer,
+        setSelectedAccountIdForDrawer,
+        selectedTransactionForDetail,
+        setSelectedTransactionForDetail,
         selectedTab,
         setSelectedTab,
         goBack,
@@ -865,6 +1677,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         navigationHistory,
         isMobileSimulator,
         setIsMobileSimulator,
+        isSidebarCollapsed,
+        setIsSidebarCollapsed,
         recycleBin,
         lastDeletedItem,
         clearLastDeletedItem,

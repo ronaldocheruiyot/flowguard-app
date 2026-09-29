@@ -1,4 +1,4 @@
-import { Account, Category, Envelope, AllocationPreset, Transaction, IncomeStream, Debtor, UserProfile, ExpenseCenter } from '../types/finance';
+import { Account, Category, Envelope, AllocationPreset, Transaction, IncomeStream, Debtor, UserProfile, ExpenseCenter, Loan, AuditLogEntry } from '../types/finance';
 
 export const DEFAULT_USER: UserProfile = {
   id: 'usr-benard-cheruiyot',
@@ -6,6 +6,8 @@ export const DEFAULT_USER: UserProfile = {
   email: 'benard.cheruiyot@flowguard.ke',
   phone: '+254 712 345 678',
   pin: '1234',
+  adminPin: '9999',
+  biometricEnabled: true,
   avatarText: 'BC',
   role: 'Enterprise Owner & Property Investor',
   bio: 'Owner of Security Services, Real Estate Agency, Lonjo Rentals & Tea Plantation.'
@@ -363,7 +365,8 @@ export const INITIAL_DEBTORS: Debtor[] = [
     description: '2 months back rent arrears for Lonjo apartment',
     status: 'pending',
     notes: 'Promised to clear via M-PESA on 5th',
-    createdAt: '2026-09-15'
+    createdAt: '2026-09-15',
+    paymentHistory: []
   },
   {
     id: 'deb-2',
@@ -375,7 +378,17 @@ export const INITIAL_DEBTORS: Debtor[] = [
     description: 'Outstanding invoice for guard shift deployment',
     status: 'partially_paid',
     notes: 'KSh 10,000 paid on 20th; KSh 25,000 remaining balance pending verification',
-    createdAt: '2026-09-01'
+    createdAt: '2026-09-01',
+    paymentHistory: [
+      {
+        id: 'pay-apex-1',
+        date: '2026-09-20',
+        amount: 10000,
+        accountId: 'acc-2',
+        accountName: 'KCB / Equity Business Account',
+        note: 'Partial payment received for September security guarding shifts'
+      }
+    ]
   },
   {
     id: 'deb-3',
@@ -387,7 +400,140 @@ export const INITIAL_DEBTORS: Debtor[] = [
     description: 'Factory weight disparity reconciliation payment',
     status: 'pending',
     notes: 'Pending factory audit signoff',
-    createdAt: '2026-09-10'
+    createdAt: '2026-09-10',
+    paymentHistory: []
+  }
+];
+
+export const INITIAL_LOANS: Loan[] = [
+  {
+    id: 'loan-km-sacco',
+    title: 'K&M SACCO Commercial Loan',
+    lender: 'K&M SACCO Society Ltd',
+    principalAmount: 350000,
+    remainingBalance: 180000,
+    interestRate: 12.0,
+    monthlyInstallment: 20000,
+    dueDate: '15th of every month',
+    startDate: '2025-06-15',
+    endDate: '2027-06-15',
+    envelopeId: 'env-loans-debt',
+    defaultAccountId: 'acc-2',
+    status: 'active',
+    description: 'Commercial facility for security equipment procurement & guard logistics fleet',
+    color: '#f43f5e',
+    icon: 'Landmark',
+    repaymentHistory: [
+      {
+        id: 'rep-km-1',
+        date: '2026-09-15',
+        amount: 20000,
+        accountId: 'acc-2',
+        note: 'September 2026 loan amortization installment'
+      },
+      {
+        id: 'rep-km-2',
+        date: '2026-08-15',
+        amount: 20000,
+        accountId: 'acc-2',
+        note: 'August 2026 loan amortization installment'
+      }
+    ]
+  },
+  {
+    id: 'loan-imarisha-sacco',
+    title: 'Imarisha SACCO Development Loan',
+    lender: 'Imarisha SACCO Society',
+    principalAmount: 450000,
+    remainingBalance: 260000,
+    interestRate: 14.0,
+    monthlyInstallment: 25000,
+    dueDate: '20th of every month',
+    startDate: '2025-01-20',
+    endDate: '2027-12-20',
+    envelopeId: 'env-loans-debt',
+    defaultAccountId: 'acc-2',
+    status: 'active',
+    description: 'Property development loan for Lonjo rental houses renovation and expansion',
+    color: '#e11d48',
+    icon: 'Building2',
+    repaymentHistory: [
+      {
+        id: 'rep-im-1',
+        date: '2026-09-20',
+        amount: 25000,
+        accountId: 'acc-2',
+        note: 'September 2026 development loan repayment'
+      }
+    ]
+  },
+  {
+    id: 'loan-personal-fuliza',
+    title: 'Personal Facility & Fuliza Overdraft',
+    lender: 'Commercial Bank & Safaricom Fuliza',
+    principalAmount: 25000,
+    remainingBalance: 8500,
+    interestRate: 1.0,
+    monthlyInstallment: 8500,
+    dueDate: 'On Demand / Continuous',
+    envelopeId: 'env-loans-debt',
+    defaultAccountId: 'acc-1',
+    status: 'active',
+    description: 'Short-term personal facility and M-PESA daily operational overdraft',
+    color: '#ef4444',
+    icon: 'Flame',
+    repaymentHistory: [
+      {
+        id: 'rep-ful-1',
+        date: '2026-09-18',
+        amount: 5000,
+        accountId: 'acc-1',
+        note: 'Auto-deduction recovery via M-PESA float'
+      }
+    ]
+  }
+];
+
+export const INITIAL_AUDIT_LOGS: AuditLogEntry[] = [
+  {
+    id: 'audit-1',
+    entityType: 'debtor',
+    entityId: 'deb-2',
+    entityName: 'Apex Logistics (Security Contract)',
+    action: 'collect',
+    changes: [
+      { field: 'amountPaid', label: 'Amount Collected', oldVal: 0, newVal: 10000 },
+      { field: 'status', label: 'Debtor Status', oldVal: 'pending', newVal: 'partially_paid' }
+    ],
+    reason: 'Received partial settlement via KCB bank transfer',
+    timestamp: '2026-09-20T14:32:00Z',
+    performedBy: 'Benard Cheruiyot'
+  },
+  {
+    id: 'audit-2',
+    entityType: 'loan',
+    entityId: 'loan-km-sacco',
+    entityName: 'K&M SACCO Commercial Loan',
+    action: 'repay',
+    changes: [
+      { field: 'remainingBalance', label: 'Remaining Balance', oldVal: 200000, newVal: 180000 }
+    ],
+    reason: 'Monthly installment deduction from KCB account',
+    timestamp: '2026-09-15T09:15:00Z',
+    performedBy: 'Benard Cheruiyot'
+  },
+  {
+    id: 'audit-3',
+    entityType: 'envelope',
+    entityId: 'env-biz-operations',
+    entityName: 'Office, Tax & Business Ops',
+    action: 'update',
+    changes: [
+      { field: 'targetAmount', label: 'Target Budget', oldVal: 75000, newVal: 85500 }
+    ],
+    reason: 'Adjusted target for increased KRA quarterly tax provisioning',
+    timestamp: '2026-09-05T11:20:00Z',
+    performedBy: 'Benard Cheruiyot'
   }
 ];
 

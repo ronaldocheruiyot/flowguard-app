@@ -17,7 +17,12 @@ import {
   Fuel,
   HeartHandshake,
   Award,
-  Play
+  Play,
+  Search,
+  Landmark,
+  Wallet,
+  Plus,
+  ArrowRightLeft
 } from 'lucide-react';
 import { DynamicIcon } from '../utils/iconMap';
 import { VideoTourModal } from './VideoTourModal';
@@ -39,11 +44,16 @@ export const Dashboard: React.FC = () => {
     totalExpectedMonthlyIncome,
     expenseCenters,
     totalMonthlyExpenseBudget,
-    debtors,
+    debtors, 
     totalPendingDebtReceivables,
+    loans,
+    totalLoanDebtRemaining,
     setIsIncomeModalOpen, 
     setPendingIncomeAmount, 
     setSelectedTab,
+    setIsCommandPaletteOpen,
+    setSelectedAccountIdForDrawer,
+    setSelectedTransactionForDetail,
     categories
   } = useFinance();
 
@@ -57,7 +67,28 @@ export const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 pb-20 pt-1">
+    <div className="space-y-4 pb-20 pt-1 animate-in fade-in duration-200">
+
+      {/* Quick Search & Command Palette Banner */}
+      <div 
+        onClick={() => setIsCommandPaletteOpen(true)}
+        className="p-3 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl flex items-center justify-between cursor-pointer transition shadow-sm group"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 group-hover:scale-105 transition">
+            <Search size={15} />
+          </div>
+          <div>
+            <span className="text-xs font-bold text-white group-hover:text-cyan-300 transition">
+              Quick Search & Module Navigator
+            </span>
+            <p className="text-[10px] text-slate-400">Jump to Debtors, Loans, Accounts, Envelopes or Statements</p>
+          </div>
+        </div>
+        <kbd className="text-[10px] font-mono bg-slate-950 border border-slate-800 px-2 py-0.5 rounded text-slate-400">
+          Ctrl + K
+        </kbd>
+      </div>
 
       {/* Video Tour Banner */}
       <div 
@@ -112,7 +143,7 @@ export const Dashboard: React.FC = () => {
 
         {/* Expected Monthly vs Actual */}
         <div className="text-[11px] text-slate-400 flex items-center justify-between pb-3">
-          <span>Expected 4-Stream Inflow:</span>
+          <span>Expected Recurring Inflow:</span>
           <span className="font-bold text-emerald-400">{formatMoney(totalExpectedMonthlyIncome)}/mo</span>
         </div>
 
@@ -184,7 +215,7 @@ export const Dashboard: React.FC = () => {
               {/* 4 Inflow Streams Sum */}
               <div className="space-y-1.5 bg-slate-950 p-3 rounded-2xl border border-slate-800">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  2. Monthly Inflow (4 Business Streams):
+                  2. Monthly Inflow (Recurring Streams):
                 </div>
                 {incomeStreams.map(inc => (
                   <div key={inc.id} className="flex justify-between items-center text-[11px]">
@@ -221,113 +252,101 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* 2. Benard Cheruiyot Business Income Streams Card */}
-      <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-            <Building size={14} className="text-emerald-500" />
-            <span>Income Portfolios ({formatMoney(totalExpectedMonthlyIncome)})</span>
-          </div>
-          <button
-            onClick={() => setSelectedTab('income-streams')}
-            className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline"
-          >
-            Manage / Edit
-          </button>
+      {/* 2. Interactive Clickable Accounts Grid */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 px-1">
+          <span className="flex items-center gap-1.5">
+            <Wallet size={14} className="text-emerald-500" />
+            <span>Liquid Accounts & Floats (Click to view ledger)</span>
+          </span>
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-normal">{accounts.length} active</span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          {incomeStreams.map((s) => (
+        <div className="grid grid-cols-2 gap-2.5">
+          {accounts.map((acc) => (
             <div 
-              key={s.id}
-              onClick={() => setSelectedTab('income-streams')}
-              className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 cursor-pointer transition space-y-1"
+              key={acc.id}
+              onClick={() => setSelectedAccountIdForDrawer(acc.id)}
+              className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-cyan-500 dark:hover:border-cyan-500/60 cursor-pointer transition space-y-1.5 shadow-sm group"
+              title={`Click to open ${acc.name} ledger and history`}
             >
               <div className="flex items-center justify-between">
                 <div 
-                  className="w-6 h-6 rounded-lg flex items-center justify-center text-xs"
-                  style={{ backgroundColor: s.color + '22', color: s.color }}
+                  className="w-7 h-7 rounded-xl flex items-center justify-center group-hover:scale-105 transition"
+                  style={{ backgroundColor: acc.color + '22', color: acc.color }}
                 >
-                  <DynamicIcon name={s.icon} className="w-3.5 h-3.5" />
+                  <DynamicIcon name={acc.icon} className="w-4 h-4" />
                 </div>
-                <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">
-                  +{formatMoney(s.expectedMonthlyAmount)}
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">
+                  {acc.type}
                 </span>
-              </div>
-              <div className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate">{s.title}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 3. Benard Cheruiyot Key Expenses (Golf, Beer, Fuel, Harambee) Card */}
-      <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-            <TrendingDown size={14} className="text-rose-500" />
-            <span>Key Expenses: Golf, Beer, Fuel & Harambees</span>
-          </div>
-          <button
-            onClick={() => setSelectedTab('expense-centers')}
-            className="text-[11px] text-rose-600 dark:text-rose-400 font-bold hover:underline"
-          >
-            Manage Outflows
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          {expenseCenters.slice(0, 4).map((exp) => (
-            <div 
-              key={exp.id}
-              onClick={() => setSelectedTab('expense-centers')}
-              className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 cursor-pointer transition space-y-1"
-            >
-              <div className="flex items-center justify-between">
-                <div 
-                  className="w-6 h-6 rounded-lg flex items-center justify-center text-xs"
-                  style={{ backgroundColor: exp.color + '22', color: exp.color }}
-                >
-                  <DynamicIcon name={exp.icon} className="w-3.5 h-3.5" />
-                </div>
-                <span className="text-[10px] font-black text-rose-600 dark:text-rose-400">
-                  -{formatMoney(exp.expectedMonthlyBudget)}
-                </span>
-              </div>
-              <div className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate">{exp.title}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 4. Debtors & Uncertain Inflows Highlight */}
-      {totalPendingDebtReceivables > 0 && (
-        <div 
-          onClick={() => setSelectedTab('debtors')}
-          className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-500/40 cursor-pointer hover:border-amber-400 transition"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                <Users size={18} />
               </div>
               <div>
-                <div className="text-xs font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
-                  <span>Debtors & Expected Receivables</span>
+                <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-cyan-400 transition">
+                  {acc.name}
                 </div>
-                <div className="text-[11px] text-amber-700 dark:text-amber-300/80 font-medium">
-                  <strong className="font-bold">{formatMoney(totalPendingDebtReceivables)}</strong> owed across {debtors.filter(d => d.status !== 'paid').length} debtors
+                <div className={`text-sm font-black ${acc.balance < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>
+                  {formatMoney(acc.balance)}
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
-              <span>View & Collect</span>
-              <ChevronRight size={14} />
-            </div>
-          </div>
+          ))}
         </div>
-      )}
+      </div>
 
-      {/* 5. Quick Action Grid: "Payday Auto-Split" & "Statement Generator" */}
+      {/* 3. Debtors & Loans Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        
+        {/* Debtors Card */}
+        <div 
+          onClick={() => setSelectedTab('debtors')}
+          className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-500/40 cursor-pointer hover:border-amber-400 transition space-y-1"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                <Users size={16} />
+              </div>
+              <span className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                Debtors Receivables
+              </span>
+            </div>
+            <ChevronRight size={14} className="text-amber-600 dark:text-amber-400" />
+          </div>
+          <div className="text-base font-black text-amber-600 dark:text-amber-400 pt-0.5">
+            {formatMoney(totalPendingDebtReceivables)}
+          </div>
+          <p className="text-[10px] text-amber-700 dark:text-amber-300/80">
+            {debtors.filter(d => d.status !== 'paid').length} uncollected receivables
+          </p>
+        </div>
+
+        {/* Loans & SACCO Debt Card */}
+        <div 
+          onClick={() => setSelectedTab('loans')}
+          className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-500/40 cursor-pointer hover:border-rose-400 transition space-y-1"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-xl bg-rose-500/20 text-rose-600 dark:text-rose-400">
+                <Landmark size={16} />
+              </div>
+              <span className="text-xs font-bold text-rose-900 dark:text-rose-200">
+                Loans & SACCO Facilities
+              </span>
+            </div>
+            <ChevronRight size={14} className="text-rose-600 dark:text-rose-400" />
+          </div>
+          <div className="text-base font-black text-rose-600 dark:text-rose-400 pt-0.5">
+            {formatMoney(totalLoanDebtRemaining)}
+          </div>
+          <p className="text-[10px] text-rose-700 dark:text-rose-300/80">
+            {loans.filter(l => l.status === 'active').length} active commercial facilities
+          </p>
+        </div>
+      </div>
+
+      {/* 4. Quick Action Grid: "Payday Auto-Split" & "Statement Generator" */}
       <div className="grid grid-cols-2 gap-2">
         <div 
           onClick={() => {
@@ -365,70 +384,7 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 6. LeakRadar Active Warning Strip */}
-      {activeLeaks.length > 0 && (
-        <div 
-          onClick={() => setSelectedTab('leak-radar')}
-          className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-500/40 cursor-pointer hover:border-rose-300 dark:hover:border-rose-400 transition"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30">
-                <ShieldAlert size={18} className="animate-bounce" />
-              </div>
-              <div>
-                <div className="text-xs font-bold text-rose-900 dark:text-rose-200 flex items-center gap-1.5">
-                  <span>{activeLeaks.length} Money Leaks Detected</span>
-                </div>
-                <div className="text-[11px] text-rose-700 dark:text-rose-300/80 font-medium">
-                  Potential to save <strong className="font-bold">{formatMoney(totalYearlyLeakLoss)}/yr</strong>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-1 text-xs font-semibold text-rose-600 dark:text-rose-400">
-              <span>Fix Now</span>
-              <ChevronRight size={14} />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 7. Accounts Grid */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 px-1">
-          <span>Your Accounts</span>
-          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-normal">{accounts.length} active</span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2.5">
-          {accounts.map((acc) => (
-            <div 
-              key={acc.id}
-              className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition space-y-1.5 shadow-sm"
-            >
-              <div className="flex items-center justify-between">
-                <div 
-                  className="w-7 h-7 rounded-xl flex items-center justify-center"
-                  style={{ backgroundColor: acc.color + '22', color: acc.color }}
-                >
-                  <DynamicIcon name={acc.icon} className="w-4 h-4" />
-                </div>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">
-                  {acc.type}
-                </span>
-              </div>
-              <div>
-                <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{acc.name}</div>
-                <div className={`text-sm font-black ${acc.balance < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>
-                  {formatMoney(acc.balance)}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 8. Virtual Envelopes Snapshot */}
+      {/* 5. Virtual Envelopes Snapshot */}
       <div className="space-y-2">
         <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 px-1">
           <span className="flex items-center gap-1.5">
@@ -481,10 +437,10 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 9. Recent Activity */}
+      {/* 6. Interactive Clickable Recent Activity */}
       <div className="space-y-2 pt-1">
         <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 px-1">
-          <span>Recent Activity</span>
+          <span>Recent Activity (Click to inspect)</span>
           <button 
             onClick={() => setSelectedTab('transactions')}
             className="text-[11px] text-cyan-600 dark:text-cyan-400 hover:underline font-semibold"
@@ -502,11 +458,13 @@ export const Dashboard: React.FC = () => {
             return (
               <div 
                 key={t.id}
-                className="p-3 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800/80 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-850 transition shadow-sm"
+                onClick={() => setSelectedTransactionForDetail(t)}
+                className="p-3 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800/80 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/80 cursor-pointer transition shadow-sm group"
+                title="Click to view details or delete transaction"
               >
                 <div className="flex items-center gap-3">
                   <div 
-                    className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm"
+                    className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition"
                     style={{ 
                       backgroundColor: cat ? cat.color + '22' : '#e2e8f0',
                       color: cat ? cat.color : '#64748b' 
@@ -517,7 +475,7 @@ export const Dashboard: React.FC = () => {
 
                   <div className="space-y-0.5">
                     <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                      <span className="truncate max-w-[140px] sm:max-w-[200px]">{t.title}</span>
+                      <span className="truncate max-w-[140px] sm:max-w-[200px] group-hover:text-cyan-400 transition">{t.title}</span>
                       {t.regretRating && t.regretRating >= 4 && (
                         <span className="flex items-center text-[9px] px-1.5 py-0.2 bg-rose-500/20 text-rose-600 dark:text-rose-300 rounded font-bold border border-rose-500/30">
                           Regret 💔
