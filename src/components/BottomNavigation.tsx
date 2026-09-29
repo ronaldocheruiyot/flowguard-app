@@ -13,8 +13,8 @@ export const BottomNavigation: React.FC = () => {
   const { selectedTab, setSelectedTab, setIsAddModalOpen, activeLeaks } = useFinance();
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 max-w-md mx-auto transition-colors">
-      <div className="flex items-center justify-around px-2 py-2 relative">
+    <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 max-w-md w-full mx-auto transition-colors">
+      <div className="flex items-center justify-around px-2 py-2 relative w-full">
         {/* Floating Fast Add Center Action button */}
         <div className="absolute -top-5 left-1/2 -translate-x-1/2">
           <button
