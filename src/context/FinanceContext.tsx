@@ -74,6 +74,9 @@ interface FinanceContextType {
   accounts: Account[];
   categories: Category[];
   envelopes: Envelope[];
+  addEnvelope: (env: Omit<Envelope, 'id'>) => void;
+  updateEnvelope: (id: string, env: Partial<Envelope>) => void;
+  deleteEnvelope: (id: string) => void;
   transactions: Transaction[];
   allocationPresets: AllocationPreset[];
   currency: CurrencySetting;
@@ -98,9 +101,6 @@ interface FinanceContextType {
   addTransaction: (tx: Omit<Transaction, 'id'>, triggerAllocationModal?: boolean) => Transaction;
   updateTransaction: (id: string, tx: Partial<Transaction>) => void;
   deleteTransaction: (id: string) => void;
-  
-  addEnvelope: (env: Omit<Envelope, 'id'>) => void;
-  updateEnvelope: (id: string, env: Partial<Envelope>) => void;
   
   addAccount: (acc: Omit<Account, 'id'>) => void;
   updateAccount: (id: string, acc: Partial<Account>) => void;
@@ -694,6 +694,14 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setEnvelopes(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e));
   };
 
+  const deleteEnvelope = (id: string) => {
+    const env = envelopes.find(e => e.id === id);
+    if (env) {
+      trackDelete('envelope', env.id, env.name, env);
+    }
+    setEnvelopes(prev => prev.filter(e => e.id !== id));
+  };
+
   const addAccount = (acc: Omit<Account, 'id'>) => {
     const newAcc: Account = {
       ...acc,
@@ -834,6 +842,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         deleteTransaction,
         addEnvelope,
         updateEnvelope,
+        deleteEnvelope,
         addAccount,
         updateAccount,
         executeIncomeAllocation,
