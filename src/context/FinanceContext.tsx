@@ -1298,32 +1298,88 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const updateTransaction = (id: string, updated: Partial<Transaction>, reason?: string) => {
     const existing = transactions.find(t => t.id === id);
-    if (existing) {
-      const changes: FieldChange[] = [];
-      Object.keys(updated).forEach(k => {
-        const key = k as keyof Transaction;
-        if (updated[key] !== undefined && updated[key] !== existing[key]) {
-          changes.push({
-            field: key,
-            label: key === 'amount' ? 'Amount' : key,
-            oldVal: existing[key],
-            newVal: updated[key]
-          });
-        }
-      });
+    if (!existing) return;
 
-      setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updated } : t));
-
-      if (changes.length > 0) {
-        logAuditAction({
-          entityType: 'transaction',
-          entityId: id,
-          entityName: updated.title || existing.title,
-          action: 'update',
-          changes,
-          reason: reason || 'Updated transaction details'
+    const changes: FieldChange[] = [];
+    Object.keys(updated).forEach(k => {
+      const key = k as keyof Transaction;
+      if (updated[key] !== undefined && updated[key] !== existing[key]) {
+        changes.push({
+          field: key,
+          label: key === 'amount' ? 'Amount' : key,
+          oldVal: existing[key],
+          newVal: updated[key]
         });
       }
+    });
+
+    // 1. Revert previous transaction's effect on accounts
+    setAccounts(prev => prev.map(acc => {
+      let bal = acc.balance;
+      if (acc.id === existing.accountId) {
+        if (existing.type === 'income') bal -= existing.amount;
+        else if (existing.type === 'expense' || existing.type === 'transfer') bal += existing.amount;
+      }
+      if (existing.type === 'transfer' && acc.id === existing.toAccountId) {
+        bal -= existing.amount;
+      }
+      return { ...acc, balance: bal };
+    }));
+
+    // 2. Revert previous transaction's effect on envelope
+    if (existing.envelopeId) {
+      setEnvelopes(prev => prev.map(env => {
+        if (env.id === existing.envelopeId) {
+          if (existing.type === 'expense') {
+            return { ...env, currentAmount: env.currentAmount + existing.amount };
+          } else if (existing.type === 'income') {
+            return { ...env, currentAmount: Math.max(0, env.currentAmount - existing.amount) };
+          }
+        }
+        return env;
+      }));
+    }
+
+    const mergedTx: Transaction = { ...existing, ...updated };
+
+    // 3. Apply updated transaction's effect on accounts
+    setAccounts(prev => prev.map(acc => {
+      let bal = acc.balance;
+      if (acc.id === mergedTx.accountId) {
+        if (mergedTx.type === 'income') bal += mergedTx.amount;
+        else if (mergedTx.type === 'expense' || mergedTx.type === 'transfer') bal -= mergedTx.amount;
+      }
+      if (mergedTx.type === 'transfer' && acc.id === mergedTx.toAccountId) {
+        bal += mergedTx.amount;
+      }
+      return { ...acc, balance: bal };
+    }));
+
+    // 4. Apply updated transaction's effect on envelope
+    if (mergedTx.envelopeId) {
+      setEnvelopes(prev => prev.map(env => {
+        if (env.id === mergedTx.envelopeId) {
+          if (mergedTx.type === 'expense') {
+            return { ...env, currentAmount: Math.max(0, env.currentAmount - mergedTx.amount) };
+          } else if (mergedTx.type === 'income') {
+            return { ...env, currentAmount: env.currentAmount + mergedTx.amount };
+          }
+        }
+        return env;
+      }));
+    }
+
+    setTransactions(prev => prev.map(t => t.id === id ? mergedTx : t));
+
+    if (changes.length > 0) {
+      logAuditAction({
+        entityType: 'transaction',
+        entityId: id,
+        entityName: mergedTx.title,
+        action: 'update',
+        changes,
+        reason: reason || `Updated transaction details (${formatMoney(mergedTx.amount)})`
+      });
     }
   };
 
@@ -1333,6 +1389,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     trackDelete('transaction', tx.id, tx.title, tx, reason);
 
+    // Revert account float
     setAccounts(prev => prev.map(acc => {
       if (acc.id === tx.accountId) {
         if (tx.type === 'income') {
@@ -1348,6 +1405,20 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
       return acc;
     }));
+
+    // Revert envelope vault balance
+    if (tx.envelopeId) {
+      setEnvelopes(prev => prev.map(env => {
+        if (env.id === tx.envelopeId) {
+          if (tx.type === 'expense') {
+            return { ...env, currentAmount: env.currentAmount + tx.amount };
+          } else if (tx.type === 'income') {
+            return { ...env, currentAmount: Math.max(0, env.currentAmount - tx.amount) };
+          }
+        }
+        return env;
+      }));
+    }
 
     setTransactions(prev => prev.filter(t => t.id !== id));
   };
@@ -1470,13 +1541,14 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const executeIncomeAllocation = (
-    _incomeAmount: number, 
+    incomeAmount: number, 
     splits: { envelopeId: string; amount: number; percentage: number }[],
-    _accountId: string
+    accountId: string
   ) => {
+    // 1. Update Envelopes (Auto-split digital vaults)
     setEnvelopes(prev => prev.map(env => {
       const split = splits.find(s => s.envelopeId === env.id);
-      if (split) {
+      if (split && split.amount > 0) {
         return {
           ...env,
           currentAmount: env.currentAmount + split.amount
@@ -1485,12 +1557,36 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return env;
     }));
 
+    // 2. Deposit into the selected Liquid Account float
+    const targetAcc = accounts.find(a => a.id === accountId);
+    setAccounts(prev => prev.map(acc => {
+      if (acc.id === accountId) {
+        return { ...acc, balance: acc.balance + incomeAmount };
+      }
+      return acc;
+    }));
+
+    // 3. Record as real Income transaction in ledger
+    const activeSplitsCount = splits.filter(s => s.amount > 0).length;
+    const newTx: Transaction = {
+      id: `tx-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      title: 'Paycheck Auto-Split Allocation',
+      amount: incomeAmount,
+      type: 'income',
+      date: new Date().toISOString().split('T')[0],
+      categoryId: 'cat-income-salary',
+      accountId: accountId,
+      note: `Auto-allocated across ${activeSplitsCount} budget vaults into ${targetAcc?.name || 'Account'}`
+    };
+
+    setTransactions(prev => [newTx, ...prev]);
+
     logAuditAction({
       entityType: 'envelope',
       entityId: 'alloc-split',
       entityName: 'Auto-Split Engine',
       action: 'update',
-      reason: `Allocated funds across ${splits.length} budget envelope vaults`
+      reason: `Allocated ${formatMoney(incomeAmount)} into ${targetAcc?.name || 'Account'} and funded ${activeSplitsCount} budget vaults`
     });
 
     try {
