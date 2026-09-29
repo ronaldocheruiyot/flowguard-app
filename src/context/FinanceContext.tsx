@@ -195,6 +195,8 @@ interface FinanceContextType {
   setSelectedAccountIdForDrawer: (accId: string | null) => void;
   selectedTransactionForDetail: Transaction | null;
   setSelectedTransactionForDetail: (tx: Transaction | null) => void;
+  isUserProfileModalOpen: boolean;
+  setIsUserProfileModalOpen: (open: boolean) => void;
 
   selectedTab: TabType;
   setSelectedTab: (tab: TabType, pushToHistory?: boolean) => void;
@@ -335,6 +337,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [selectedAccountIdForDrawer, setSelectedAccountIdForDrawer] = useState<string | null>(null);
   const [selectedTransactionForDetail, setSelectedTransactionForDetail] = useState<Transaction | null>(null);
+  const [isUserProfileModalOpen, setIsUserProfileModalOpen] = useState(false);
 
   const [selectedTab, setSelectedTabState] = useState<TabType>('dashboard');
   const [navigationHistory, setNavigationHistory] = useState<TabType[]>([]);
@@ -1670,6 +1673,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setSelectedAccountIdForDrawer,
         selectedTransactionForDetail,
         setSelectedTransactionForDetail,
+        isUserProfileModalOpen,
+        setIsUserProfileModalOpen,
         selectedTab,
         setSelectedTab,
         goBack,

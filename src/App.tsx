@@ -26,6 +26,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { UndoToast } from './components/UndoToast';
 import { MobileFrame } from './components/MobileFrame';
 import { InstallAppBanner } from './components/InstallAppBanner';
+import { UserProfileModal } from './components/UserProfileModal';
 import { 
   BarChart3, 
   FileText, 
@@ -63,7 +64,9 @@ const MainContent: React.FC = () => {
     goBack, 
     canGoBack,
     totalExpectedMonthlyIncome,
-    isSidebarCollapsed
+    isSidebarCollapsed,
+    isUserProfileModalOpen,
+    setIsUserProfileModalOpen
   } = useFinance();
 
   if (!isAuthenticated) {
@@ -214,6 +217,10 @@ const MainContent: React.FC = () => {
           </main>
 
           {/* Global Modals & Notifications */}
+          <UserProfileModal 
+            isOpen={isUserProfileModalOpen} 
+            onClose={() => setIsUserProfileModalOpen(false)} 
+          />
           <IncomeAllocatorModal />
           <QuickTransactionModal />
           <AccountDetailModal />
@@ -221,10 +228,8 @@ const MainContent: React.FC = () => {
           <CommandPalette />
           <UndoToast />
 
-          {/* Mobile Bottom Navigation Bar */}
-          <div className="md:hidden">
-            <BottomNavigation />
-          </div>
+          {/* Bottom Navigation Bar with Prominent Middle + Button */}
+          <BottomNavigation />
         </MobileFrame>
       </div>
     </div>

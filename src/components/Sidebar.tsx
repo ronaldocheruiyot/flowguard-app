@@ -21,7 +21,9 @@ import {
   ShieldCheck, 
   LogOut, 
   Sparkles,
-  ChevronLeft
+  ChevronLeft,
+  User,
+  UserCheck
 } from 'lucide-react';
 import { useFinance, TabType } from '../context/FinanceContext';
 
@@ -33,6 +35,7 @@ export const Sidebar: React.FC = () => {
     setIsSidebarCollapsed, 
     setIsAddModalOpen,
     setIsCommandPaletteOpen,
+    setIsUserProfileModalOpen,
     totalExpectedMonthlyIncome,
     totalPendingDebtReceivables,
     totalLoanDebtRemaining,
@@ -295,32 +298,48 @@ export const Sidebar: React.FC = () => {
       {/* User Profile & Footer */}
       <div className="p-3 border-t border-slate-800/80 bg-slate-950/90">
         {!isSidebarCollapsed ? (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-white shrink-0">
+          <div className="flex items-center justify-between gap-2">
+            <div 
+              onClick={() => setIsUserProfileModalOpen(true)}
+              className="flex items-center gap-2.5 min-w-0 flex-1 p-1.5 -ml-1 rounded-2xl hover:bg-slate-900 cursor-pointer transition group"
+              title="Click to view and edit Benard Cheruiyot Profile"
+            >
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-emerald-400 border border-slate-700 flex items-center justify-center font-bold text-xs text-white shrink-0 group-hover:scale-105 transition">
                 {user.avatarText || 'BC'}
               </div>
               <div className="truncate">
-                <p className="text-xs font-bold text-white truncate">{user.name}</p>
-                <p className="text-[10px] text-emerald-400 font-medium">Online • Enterprise</p>
+                <p className="text-xs font-bold text-white group-hover:text-cyan-400 transition truncate">{user.name}</p>
+                <p className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+                  <span>Online • Profile</span>
+                  <span className="text-slate-500">⚙</span>
+                </p>
               </div>
             </div>
             <button
               onClick={logout}
-              className="p-1.5 text-slate-400 hover:text-rose-400 rounded-xl hover:bg-slate-900 transition"
+              className="p-1.5 text-slate-400 hover:text-rose-400 rounded-xl hover:bg-slate-900 transition shrink-0"
               title="Lock / Logout"
             >
               <LogOut size={16} />
             </button>
           </div>
         ) : (
-          <button
-            onClick={logout}
-            className="w-full p-2 text-slate-400 hover:text-rose-400 rounded-xl hover:bg-slate-900 transition flex items-center justify-center"
-            title="Lock / Logout"
-          >
-            <LogOut size={16} />
-          </button>
+          <div className="space-y-1.5 flex flex-col items-center">
+            <button
+              onClick={() => setIsUserProfileModalOpen(true)}
+              className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-emerald-400 border border-slate-700 flex items-center justify-center font-bold text-xs text-white hover:scale-105 transition"
+              title="Benard Cheruiyot Profile"
+            >
+              {user.avatarText || 'BC'}
+            </button>
+            <button
+              onClick={logout}
+              className="w-full p-1.5 text-slate-400 hover:text-rose-400 rounded-xl hover:bg-slate-900 transition flex items-center justify-center"
+              title="Lock / Logout"
+            >
+              <LogOut size={14} />
+            </button>
+          </div>
         )}
       </div>
     </aside>
