@@ -63,7 +63,7 @@ export const QuickTransactionModal: React.FC = () => {
         amount: numAmount,
         type,
         date,
-        categoryId: type === 'income' ? 'cat-income-salary' : categoryId,
+        categoryId: categoryId || (type === 'income' ? 'cat-income-other' : 'cat-groceries'),
         accountId,
         envelopeId: type === 'expense' ? envelopeId : undefined,
         note: note.trim() || undefined,
@@ -113,7 +113,11 @@ export const QuickTransactionModal: React.FC = () => {
         <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-950 rounded-2xl border border-slate-800">
           <button
             type="button"
-            onClick={() => setType('expense')}
+            onClick={() => {
+              setType('expense');
+              const firstExpenseCat = categories.find(c => c.group !== 'income');
+              if (firstExpenseCat) setCategoryId(firstExpenseCat.id);
+            }}
             className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
               type === 'expense'
                 ? 'bg-rose-500 text-white shadow-glow-red'
@@ -126,7 +130,11 @@ export const QuickTransactionModal: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => setType('income')}
+            onClick={() => {
+              setType('income');
+              const firstIncomeCat = categories.find(c => c.group === 'income');
+              if (firstIncomeCat) setCategoryId(firstIncomeCat.id);
+            }}
             className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
               type === 'income'
                 ? 'bg-emerald-500 text-white shadow-glow-green'
