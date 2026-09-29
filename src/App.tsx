@@ -81,10 +81,8 @@ const MainContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row w-full max-w-full overflow-x-hidden">
-      {/* Desktop & Tablet Sidebar */}
-      <div className="hidden md:block shrink-0">
-        <Sidebar />
-      </div>
+      {/* Desktop Persistent Sidebar & Mobile Slide-Over Drawer */}
+      <Sidebar />
 
       {/* Main Container */}
       <div 

@@ -207,6 +207,8 @@ interface FinanceContextType {
   setIsMobileSimulator: (isSim: boolean) => void;
   isSidebarCollapsed: boolean;
   setIsSidebarCollapsed: (collapsed: boolean | ((prev: boolean) => boolean)) => void;
+  isMobileMenuOpen: boolean;
+  setIsMobileMenuOpen: (open: boolean | ((prev: boolean) => boolean)) => void;
 
   // Recycle Bin & Undo System
   recycleBin: DeletedRecord[];
@@ -342,6 +344,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [selectedTab, setSelectedTabState] = useState<TabType>('dashboard');
   const [navigationHistory, setNavigationHistory] = useState<TabType[]>([]);
   const [isMobileSimulator, setIsMobileSimulator] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Sync tab navigation with browser history
   useEffect(() => {
@@ -1684,6 +1687,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setIsMobileSimulator,
         isSidebarCollapsed,
         setIsSidebarCollapsed,
+        isMobileMenuOpen,
+        setIsMobileMenuOpen,
         recycleBin,
         lastDeletedItem,
         clearLastDeletedItem,

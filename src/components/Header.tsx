@@ -14,7 +14,8 @@ import {
   Moon,
   LogOut,
   User,
-  Trash2
+  Trash2,
+  Menu
 } from 'lucide-react';
 import { RecycleBinModal } from './RecycleBinModal';
 import { UserProfileModal } from './UserProfileModal';
@@ -29,6 +30,8 @@ export const Header: React.FC = () => {
     setSelectedTab, 
     isMobileSimulator, 
     setIsMobileSimulator,
+    isMobileMenuOpen,
+    setIsMobileMenuOpen,
     resetData,
     exportData,
     importData,
@@ -73,33 +76,46 @@ export const Header: React.FC = () => {
   return (
     <>
       <header className="px-3 sm:px-4 py-2.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 flex items-center justify-between transition-colors w-full max-w-full overflow-hidden">
-        {/* User Profile / Logo - Clickable to open Profile & Shortcuts Modal */}
-        <div 
-          className="flex items-center gap-2 cursor-pointer hover:opacity-85 transition active:scale-95 group min-w-0 flex-1 mr-2" 
-          onClick={() => setShowProfileModal(true)}
-          title="Click to open Benard Cheruiyot Profile, PIN Settings & Shortcuts"
-        >
-          {user.avatarUrl ? (
-            <img 
-              src={user.avatarUrl} 
-              alt={user.name} 
-              className="w-8 h-8 rounded-xl object-cover border border-emerald-500 shadow-sm shrink-0"
-            />
-          ) : (
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-cyan-400 flex items-center justify-center shadow-glow-green text-white font-black text-xs shrink-0">
-              {user.avatarText}
+        {/* Left Side: Mobile Menu Hamburger + User Profile / Logo */}
+        <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
+          {/* Mobile Drawer Trigger (Visible on mobile/tablet screens) */}
+          <button
+            onClick={() => setIsMobileMenuOpen(prev => !prev)}
+            className="md:hidden p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-750 active:scale-95 transition shrink-0"
+            title="Open Navigation Menu"
+            aria-label="Open Navigation Menu"
+          >
+            <Menu size={16} className="text-emerald-500 dark:text-emerald-400" />
+          </button>
+
+          {/* User Profile / Logo - Clickable to open Profile & Shortcuts Modal */}
+          <div 
+            className="flex items-center gap-2 cursor-pointer hover:opacity-85 transition active:scale-95 group min-w-0 flex-1" 
+            onClick={() => setShowProfileModal(true)}
+            title="Click to open Benard Cheruiyot Profile, PIN Settings & Shortcuts"
+          >
+            {user.avatarUrl ? (
+              <img 
+                src={user.avatarUrl} 
+                alt={user.name} 
+                className="w-8 h-8 rounded-xl object-cover border border-emerald-500 shadow-sm shrink-0"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-cyan-400 flex items-center justify-center shadow-glow-green text-white font-black text-xs shrink-0">
+                {user.avatarText}
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <h1 className="font-bold text-xs tracking-tight text-slate-900 dark:text-white flex items-center gap-1 truncate">
+                <span className="truncate">{user.name}</span>
+                <span className="text-[8px] uppercase font-bold tracking-wider px-1 py-0.2 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-md border border-emerald-500/30 shrink-0">
+                  PRO
+                </span>
+              </h1>
+              <p className="text-[9px] text-slate-500 dark:text-slate-400 font-medium group-hover:text-emerald-500 transition truncate">
+                Security • Real Estate • Rentals • Tea
+              </p>
             </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <h1 className="font-bold text-xs tracking-tight text-slate-900 dark:text-white flex items-center gap-1 truncate">
-              <span className="truncate">{user.name}</span>
-              <span className="text-[8px] uppercase font-bold tracking-wider px-1 py-0.2 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-md border border-emerald-500/30 shrink-0">
-                PRO
-              </span>
-            </h1>
-            <p className="text-[9px] text-slate-500 dark:text-slate-400 font-medium group-hover:text-emerald-500 transition truncate">
-              Security • Real Estate • Rentals • Tea
-            </p>
           </div>
         </div>
 
