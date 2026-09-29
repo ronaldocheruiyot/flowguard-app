@@ -177,6 +177,7 @@ interface FinanceContextType {
   executeIncomeAllocation: (incomeAmount: number, splits: { envelopeId: string; amount: number; percentage: number }[], accountId: string) => void;
   dismissLeak: (leakId: string) => void;
   resetData: (reason?: string) => void;
+  wipeToBlankSlate: (reason?: string) => void;
   exportData: () => string;
   importData: (jsonStr: string) => boolean;
 
@@ -1528,6 +1529,34 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
   };
 
+  const wipeToBlankSlate = (reason?: string) => {
+    setUser(DEFAULT_USER);
+    setIncomeStreams([]);
+    setExpenseCenters([]);
+    setDebtors([]);
+    setLoans([]);
+    setTransactions([]);
+    setEnvelopes([]);
+    setAccounts([
+      { id: 'acc-1', name: 'M-PESA Business / Till', type: 'cash', balance: 0, color: '#22c55e', icon: 'Smartphone', accountNumber: '••254-712' },
+      { id: 'acc-2', name: 'KCB / Equity Business Account', type: 'checking', balance: 0, color: '#06b6d4', icon: 'Building2', accountNumber: '••4019' },
+      { id: 'acc-3', name: 'High-Yield MMF / SACCO Reserve', type: 'savings', balance: 0, color: '#10b981', icon: 'ShieldCheck', accountNumber: '••8832' },
+      { id: 'acc-4', name: 'Credit Card / Visa Gold', type: 'credit', balance: 0, color: '#f43f5e', icon: 'CreditCard', accountNumber: '••6190' }
+    ]);
+    setAuditLogs([]);
+    setDismissedLeaks([]);
+    setRecycleBin([]);
+    localStorage.clear();
+
+    logAuditAction({
+      entityType: 'system',
+      entityId: 'sys-wipe',
+      entityName: 'System Data Wiper',
+      action: 'delete',
+      reason: reason || 'Administrator wiped all custom transactions, records, and balances to zero'
+    });
+  };
+
   const exportData = (): string => {
     const bundle = {
       user,
@@ -1660,6 +1689,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         executeIncomeAllocation,
         dismissLeak,
         resetData,
+        wipeToBlankSlate,
         exportData,
         importData,
         isIncomeModalOpen,

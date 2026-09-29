@@ -30,6 +30,7 @@ export const SettingsView: React.FC = () => {
     exportData, 
     importData, 
     resetData, 
+    wipeToBlankSlate,
     validateAdminPin,
     isAdminAuthenticated,
     setAdminAuthenticated
@@ -47,12 +48,13 @@ export const SettingsView: React.FC = () => {
   const [confirmAdminPin, setConfirmAdminPin] = useState('');
   const [adminPinMessage, setAdminPinMessage] = useState<{ text: string; isError: boolean } | null>(null);
 
+  // Modals
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [isWipeModalOpen, setIsWipeModalOpen] = useState(false);
+
   // Import JSON State
   const [importJson, setImportJson] = useState('');
   const [importMessage, setImportMessage] = useState<{ text: string; isError: boolean } | null>(null);
-
-  // Reset Modal
-  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
   // Save User PIN
   const handleUpdateUserPin = (e: React.FormEvent) => {
@@ -425,32 +427,58 @@ export const SettingsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Danger Zone: Factory Reset */}
-      <div className="bg-rose-950/30 border border-rose-900/50 rounded-3xl p-5 sm:p-6 space-y-3">
+      {/* Danger Zone: Factory Reset & Clean Slate */}
+      <div className="bg-rose-950/30 border border-rose-900/50 rounded-3xl p-5 sm:p-6 space-y-4">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30">
             <AlertTriangle size={20} />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white">Danger Zone: System Factory Reset</h3>
+            <h3 className="text-sm font-bold text-white">Danger Zone: System Data Clearance</h3>
             <p className="text-xs text-rose-300 mt-0.5">
-              Permanently resets all local transactions, debtors, loans, and budget envelopes back to initial defaults. Requires Admin PIN authorization.
+              Permanently clears local storage, custom modifications, transactions, and debtor files. Both actions require mandatory Admin PIN authorization.
             </p>
           </div>
         </div>
 
-        <div className="pt-2">
-          <button
-            onClick={() => setIsResetModalOpen(true)}
-            className="py-2.5 px-4 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-lg shadow-rose-950/50"
-          >
-            <Trash2 size={15} />
-            <span>Initiate Protected Factory Reset</span>
-          </button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          {/* Option 1: Factory Reset to Starter Defaults */}
+          <div className="p-3.5 bg-slate-950/80 rounded-2xl border border-rose-900/40 space-y-2">
+            <div>
+              <h4 className="text-xs font-bold text-white">1. Factory Reset to Baseline</h4>
+              <p className="text-[10px] text-slate-400">
+                Wipes all custom changes and restores standard default streams, accounts, and sample ledger.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsResetModalOpen(true)}
+              className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center justify-center gap-1.5 border border-slate-700"
+            >
+              <RefreshCw size={14} className="text-cyan-400" />
+              <span>Reset to Starter Baseline</span>
+            </button>
+          </div>
+
+          {/* Option 2: Pure Blank Slate Wipe */}
+          <div className="p-3.5 bg-rose-950/60 rounded-2xl border border-rose-500/40 space-y-2">
+            <div>
+              <h4 className="text-xs font-bold text-rose-200">2. Wipe All to Blank Slate</h4>
+              <p className="text-[10px] text-rose-300/80">
+                Permanently wipes all transactions, debtors, loans, and resets all account floats to KSh 0.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsWipeModalOpen(true)}
+              className="w-full py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md shadow-rose-950/50"
+            >
+              <Trash2 size={14} />
+              <span>Wipe to 100% Blank Slate (0)</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Factory Reset Protected Confirmation Modal */}
+      {/* 1. Factory Reset Protected Confirmation Modal */}
       <ConfirmActionModal
         isOpen={isResetModalOpen}
         onClose={() => setIsResetModalOpen(false)}
@@ -463,12 +491,34 @@ export const SettingsView: React.FC = () => {
             alert('Incorrect Admin PIN. Factory reset was rejected.');
           }
         }}
-        title="Authorize Full Factory Reset"
+        title="Authorize Baseline Factory Reset"
         message="This is an irreversible action. All custom transactions, debtor entries, and loan adjustments will be replaced with standard baseline data. Enter your 4-digit Admin PIN and state a reason."
-        confirmText="Confirm & Reset All Data"
+        confirmText="Confirm & Reset to Baseline"
         requireAdminPin={true}
         requireReason={true}
         reasonPlaceholder="Mandatory reason for factory resetting system data..."
+        isDangerous={true}
+      />
+
+      {/* 2. Blank Slate Wipe Protected Confirmation Modal */}
+      <ConfirmActionModal
+        isOpen={isWipeModalOpen}
+        onClose={() => setIsWipeModalOpen(false)}
+        onConfirm={(reason, adminPin) => {
+          if (adminPin && validateAdminPin(adminPin)) {
+            wipeToBlankSlate(reason);
+            setIsWipeModalOpen(false);
+            alert('FlowGuard was completely wiped to a blank slate (0 balance, 0 transactions, 0 debtors).');
+          } else {
+            alert('Incorrect Admin PIN. Wipe action was rejected.');
+          }
+        }}
+        title="Authorize 100% Blank Slate Wipe"
+        message="WARNING: This will permanently delete ALL transactions, debtor records, loans, custom income streams, and reset all account balances to KSh 0. Enter your 4-digit Admin PIN and state a reason."
+        confirmText="Permanently Wipe All to Zero (0)"
+        requireAdminPin={true}
+        requireReason={true}
+        reasonPlaceholder="Mandatory reason for wiping database to blank slate..."
         isDangerous={true}
       />
     </div>
